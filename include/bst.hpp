@@ -25,8 +25,10 @@ std::ostream& operator<<(std::ostream& , const Bst<K,V,cmp>&);
 template< class K, class V, class cmp = std::less<K> >
 class Bst{
     
+  public:
     using kvpair = std::pair<const K,V>;
 
+  private:
     struct Node{
         kvpair kv;
 
@@ -66,8 +68,8 @@ class Bst{
         /// 
         /// Next node is either (checked in order):
         /// 1. leftmost node of right subtree (including r_child)
-        /// 2. parent
-        /// 3. nullptr
+        /// 2. first ancestor whose l_child is node or an ancestor
+        /// 3. nullptr = end() (stays there if it already is)
         void select_next();
 
       public:
@@ -90,29 +92,66 @@ class Bst{
     };
 
     class const_iterator{
-
+        //TODO: basically duplicate iterator
     };
 
+  /// @brief Returns the smallest element i.e. the leftmost
+  /// 
+  /// @return iterator iterator to leftmost element
   iterator begin();
-  iterator end();
   const const_iterator cbegin() const;
-  const const_iterator cend() const;
+
+  /// @brief Returns one-past greatest element i.e. nullptr
+  /// 
+  /// @return iterator iterator to nullptr
+  iterator end(){ return iterator(nullptr);}
+  const const_iterator cend() const{ return const_iterator(nullptr);}
 
 
   // Node insertion
 
+  /// @brief Inserts a new node in the tree by copying given key/value pair.
+  ///
+  /// If given key is already used the tree is left unchanged.
+  /// 
+  /// @param kv   key/value pair to copy
+  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
   std::pair<iterator, bool> insert(const kvpair& kv);
+
+  /// @brief Inserts a new node in the tree by moving given key/value pair.
+  ///
+  /// If given key is already used the tree is left unchanged.
+  /// 
+  /// @param kv   key/value pair to move
+  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+
   std::pair<iterator, bool> insert(kvpair&& kv);
 
+  /// @brief Inserts a new node in the tree by creating it in place from given args.
+  /// 
+  /// If given key is already used the tree is left unchanged.
+  /// 
+  /// @tparam vctorargtypes   argument types of V ctor 
+  /// @param key              key value to insert the element at (if not present)
+  /// @param vctorargs        values forwarded to V ctor
+  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
   template< class... vctorargtypes >
-  std::pair<iterator, bool> emplace(vctorargtypes&&... vctorargs);
+  std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
 
 
   // Node access
 
+  /// @brief returns an iterator to given key (or to end() if none was found)
+  /// 
+  /// @param key        key to find
+  /// @return iterator  iterator to value found (or end() if key is not present)
   iterator find(const K& key);
   const_iterator find(const K& key) const;
 
+  /// @brief returns a r/w reference to value at given key (eventually initializing it).
+  /// 
+  /// @param key        key of the element to return
+  /// @return V&        reference to the element at key (initializes it if not present already)
   V& operator[](const K& key);
   V& operator[](K&& key);
 
@@ -121,7 +160,7 @@ class Bst{
   /// @param key Key of the element to remove
   void erase(const K& key);
 
-  /// @brief Clear the content of the tree
+  /// @brief Clears the content of the tree
   /// 
   void clear();
 
