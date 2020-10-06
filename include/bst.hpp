@@ -3,6 +3,7 @@
 #include <iostream> 
 #include <utility>   //for std::pair
 #include <string>
+#include <functional>
 
 
 // forward declarations for friend operator<<
@@ -29,34 +30,88 @@ class Bst{
     using kvpair = std::pair<const K,V>;
 
   private:
+
+    /// @brief Tree nodes
+    /// 
+    /// These make up the actual memory store of the bst.
+    /// Node allocation is managed by the enclosing bst class, hence
+    /// CHILD DEALLOCATION MUST BE HANDLED MANUALLY by delete_subtree_rec()
     struct Node{
         kvpair kv;
 
-        Node* parent;
+        const Node* parent;
         Node* l_child;
         Node* r_child;
+
+        Node(const kvpair& p_kv): kv{p_kv}{};
+        Node(kvpair&& p_kv): kv{std::move(p_kv)}{};
+
+        /// @brief Recursively deletes all node's descents
+        void delete_subtree_rec();
+
+        ~Node();
+
+        // copy/move semantics---------
+
+        /// @brief Move ctor
+        Node(Node&& node){
+
+            kv = std::move(node.kv);
+
+            if(node.l_child){
+              l_child = node.l_child;
+              l_child->parent = this;
+            }
+            if(node.r_child){
+              r_child = node.r_child;
+              r_child->parent = this;
+            }
+
+        }
+
+        /// @brief Move assignment
+        Node& operator=(Node&& rhs){
+            delete_subtree_rec();
+            kv = std::move(rhs.kv);
+
+            if(rhs.l_child){
+              l_child = rhs.l_child;
+              l_child->parent = this;
+            }
+            if(rhs.r_child){
+              r_child = rhs.r_child;
+              r_child->parent = this;
+            }
+            return *this;
+        }
+
+        /// @brief Copy ctor
+        Node(const Node& node);
+
+        /// @brief Copy assignment
+        Node& operator=(const Node& rhs);
+
     };
 
     Node* root;
 
     unsigned int size;
-    unsigned int height;
+    int height;
 
   public:
 
     // ctors, dtors -----------------------------------------------------------
-    Bst(): root(nullptr){};
+    Bst(): root{nullptr}, size{0}, height{-1}{};
 
     ~Bst();
 
-
     // copy/move semantics ----------------------------------------------------
-
-    Bst(const Bst& bst);
-    Bst& operator=(const Bst* rhs);
 
     Bst(Bst&& bst);
     Bst& operator=(Bst&& rhs);
+
+    Bst(const Bst& bst);
+    Bst& operator=(const Bst& rhs);
 
     // Iterator interface -----------------------------------------------------
 
@@ -108,7 +163,9 @@ class Bst{
   const const_iterator cend() const{ return const_iterator(nullptr);}
 
 
+  //---------------
   // Node insertion
+  //---------------
 
   /// @brief Inserts a new node in the tree by copying given key/value pair.
   ///
@@ -138,8 +195,9 @@ class Bst{
   template< class... vctorargtypes >
   std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
 
-
+  //------------
   // Node access
+  //------------
 
   /// @brief returns an iterator to given key (or to end() if none was found)
   /// 
@@ -164,8 +222,9 @@ class Bst{
   /// 
   void clear();
 
-
+  //-------
   // Output
+  //-------
 
   /// @brief Sends string representation of bst to ostream
   /// 
@@ -175,10 +234,163 @@ class Bst{
   friend
   std::ostream& operator<< <>(std::ostream& os, const Bst& bst);
 
-
+  //--------
   // Balance
+  //--------
 
   /// @brief Balances the tree
   /// 
   void balance();
 };
+
+
+//#############################################################################
+//DEFINITIONS
+//#############################################################################
+
+//----
+//Node
+//----
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::Node::delete_subtree_rec(){
+    if(l_child){
+        delete l_child;
+        l_child = nullptr;
+    }
+    if(r_child){
+        delete r_child;
+        r_child = nullptr;
+    }
+}
+
+template< class K, class V, class cmp>
+Bst<K,V,cmp>::Node::~Node(){
+    delete_subtree_rec();
+}
+
+template< class K, class V, class cmp>
+Bst<K,V,cmp>::Node::Node(const Node& node):
+  kv{node.kv}{
+    
+    delete_subtree_rec();
+
+    // clone descents (recursive call to copy ctor)
+    if(node.l_child){
+      l_child = new Node{*node.l_child};
+      l_child->parent = this;
+    }
+    if(node.r_child){
+      r_child = new Node{*node.r_child};
+      r_child->parent = this;
+    }
+}
+
+template< class K, class V, class cmp>
+typename Bst<K,V,cmp>::Node& Bst<K,V,cmp>::Node::operator=(const Node& rhs){
+
+    // Identity check
+    if(&rhs != this){
+      auto cpy{rhs};
+      (*this) = std::move(cpy);
+    }
+
+    return *this;
+}
+
+//---------
+// iterator
+//---------
+
+
+//----
+// bst
+//----
+
+template< class K, class V, class cmp>
+Bst<K,V,cmp>::~Bst(){
+    if(root){
+        delete root;
+    }
+}
+
+template< class K, class V, class cmp>
+std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const Bst::kvpair& kv){
+    
+    Node *target{root};
+    Node *target_parent{nullptr};
+    int new_height{0};
+
+    // navigate the tree until insertion point is found 
+    while(target){
+        // <
+        if( cmp()(kv.first,target->kv.first) && ! cmp()(target->kv.first, kv.first)){
+            target_parent = target;
+            target = target->l_child;
+            if(target == nullptr){
+                target_parent->l_child = new Node{kv};
+                target_parent->l_child->parent = target_parent;
+            }
+        }
+        // >
+        else if( cmp()(target->kv.first, kv.first) && ! cmp()(kv.first,target->kv.first)){
+            target_parent = target;
+            target = target->r_child;
+            if(target == nullptr){
+                target_parent->r_child = new Node{kv};
+                target_parent->r_child->parent = target_parent;
+            }
+        }
+        // == --> no insertion
+        else{
+            return std::make_pair(Bst::iterator{target},false);
+        }
+        ++new_height;
+    }
+    
+    // update size and height (if necessary)
+    ++size;
+    if(height<new_height){ height = new_height;}
+
+    return std::make_pair(Bst::iterator{target},true);
+}
+
+template< class K, class V, class cmp>
+std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
+    
+    Node *target{root}, *target_parent{nullptr};
+    int new_height{0};
+
+    // navigate the tree until insertion point is found 
+    while(target){
+        // <
+        if( cmp()(kv.first,target->kv.first) && ! cmp()(target->kv.first, kv.first)){
+            target_parent = target;
+            target = target->l_child;
+            if(target == nullptr){
+                target_parent->l_child = new Node{std::move(kv)};
+                target_parent->l_child->parent = target_parent;
+            }
+        }
+        // >
+        else if( cmp()(target->kv.first, kv.first) && ! cmp()(kv.first,target->kv.first)){
+            target_parent = target;
+            target = target->r_child;
+            if(target == nullptr){
+                target_parent->r_child = new Node{std::move(kv)};
+                target_parent->r_child->parent = target_parent;
+            }
+        }
+        // == --> no insertion
+        else{
+            return std::make_pair(Bst::iterator{target},false);
+        }
+        ++new_height;
+    }
+    
+    // update size and height (if necessary)
+    ++size;
+    if(height<new_height){ height = new_height;}
+
+    return std::make_pair(Bst::iterator{target},true);
+}
