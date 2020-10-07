@@ -4,6 +4,7 @@
 #include <utility>   //for std::pair
 #include <string>
 #include <functional>
+#include <exception>
 
 
 // forward declarations for friend operator<<
@@ -39,9 +40,9 @@ class Bst{
     struct Node{
         kvpair kv;
 
-        const Node* parent;
-        Node* l_child;
-        Node* r_child;
+        Node* parent{nullptr};
+        Node* l_child{nullptr};
+        Node* r_child{nullptr};
 
         Node(const kvpair& p_kv): kv{p_kv}{};
         Node(kvpair&& p_kv): kv{std::move(p_kv)}{};
@@ -49,6 +50,8 @@ class Bst{
         /// @brief Recursively deletes all node's descents
         void delete_subtree_rec();
 
+        /// @brief Destroy the Node object and its descents
+        /// 
         ~Node();
 
         // copy/move semantics---------
@@ -130,20 +133,25 @@ class Bst{
       public:
         explicit iterator(Node* n): current(n){};
 
-        bool operator==(const iterator rhs){return current == rhs->current;}
-        bool operator!=(const iterator rhs){return !(current == rhs->current);}
+        bool operator==(const iterator& rhs){return current == rhs.current;}
+        bool operator!=(const iterator& rhs){return !(current == rhs.current);}
 
         /// @brief pre-increment
         /// 
         /// @return iterator& The incremented iterator obj
-        iterator& operator++(){ select_next(); }
+        iterator& operator++(){ select_next(); return *this;}
         
         /// @brief post-increment
         ///
         /// @return iterator Copy of the iterator before increment 
         iterator operator++(int){ iterator cp{current}; select_next(); return cp;}
 
-        kvpair operator*(){ return current->kv;}
+        kvpair& operator*(){
+            if(current==nullptr){
+                throw std::out_of_range("Bst iterator out of range!");
+            }
+            return current->kv;
+        }
     };
 
     class const_iterator{
@@ -153,7 +161,11 @@ class Bst{
   /// @brief Returns the smallest element i.e. the leftmost
   /// 
   /// @return iterator iterator to leftmost element
-  iterator begin();
+  iterator begin(){
+      Node* first{root};
+      while(first->l_child){first = first->l_child;}
+      return iterator(first);
+  };
   const const_iterator cbegin() const;
 
   /// @brief Returns one-past greatest element i.e. nullptr
@@ -226,6 +238,9 @@ class Bst{
   // Output
   //-------
 
+  unsigned int get_size(){return size;}
+  int get_height(){return height;}
+  
   /// @brief Sends string representation of bst to ostream
   /// 
   /// @param os   output stream
@@ -302,6 +317,42 @@ typename Bst<K,V,cmp>::Node& Bst<K,V,cmp>::Node::operator=(const Node& rhs){
 // iterator
 //---------
 
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::iterator::select_next(){
+    
+    // 3. stay at end if there
+    if(current == nullptr){
+      return;
+    }
+
+    Node* target{nullptr};
+
+    // 1. leftmost of r_child subtree
+    if(current->r_child){
+        
+        // go right
+        target = current->r_child;
+        // then left while possible
+        while(target->l_child){
+            target = target->l_child;
+        }
+    }
+    //2. first ancestor whose l_child is ancestor
+    else if(current->parent){
+
+        // go up while possible and not l_child of parent
+        target = current;
+        while( (target->parent!=nullptr) &&
+              (target != (target->parent->l_child))){
+            target = target->parent;
+        }
+        // .. and up one step (eventually up to end())
+        target = target->parent;
+    }
+    
+    current = target;
+}
+
 
 //----
 // bst
@@ -315,35 +366,50 @@ Bst<K,V,cmp>::~Bst(){
 }
 
 template< class K, class V, class cmp>
-std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const Bst::kvpair& kv){
+std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
+    Node* target_parent{root};
     
-    Node *target{root};
-    Node *target_parent{nullptr};
-    int new_height{0};
+    // root
+    if(target_parent==nullptr){
+        root = new Node{kv};
+        size=1;
+        height=0;
+        return std::make_pair(Bst::iterator{root},true);
+    }
 
-    // navigate the tree until insertion point is found 
-    while(target){
+    int new_height{1};
+    Node *target{nullptr};
+    while(target_parent){
         // <
-        if( cmp()(kv.first,target->kv.first) && ! cmp()(target->kv.first, kv.first)){
-            target_parent = target;
-            target = target->l_child;
-            if(target == nullptr){
-                target_parent->l_child = new Node{kv};
+        if(cmp()(kv.first,target_parent->kv.first) &&
+           !cmp()(target_parent->kv.first, kv.first)){
+            if(target_parent->l_child){
+                target_parent = target_parent->l_child;
+            }
+            else{
+                target_parent->l_child = new Node{std::move(kv)};
                 target_parent->l_child->parent = target_parent;
+                target = target_parent->l_child;
+                break;
             }
         }
         // >
-        else if( cmp()(target->kv.first, kv.first) && ! cmp()(kv.first,target->kv.first)){
-            target_parent = target;
-            target = target->r_child;
-            if(target == nullptr){
-                target_parent->r_child = new Node{kv};
+        else if(!cmp()(kv.first,target_parent->kv.first) &&
+                cmp()(target_parent->kv.first, kv.first)){
+
+            if(target_parent->r_child){
+                target_parent = target_parent->r_child;
+            }
+            else{
+                target_parent->r_child = new Node{std::move(kv)};
                 target_parent->r_child->parent = target_parent;
+                target = target_parent->r_child;
+                break;
             }
         }
-        // == --> no insertion
-        else{
-            return std::make_pair(Bst::iterator{target},false);
+        //=
+        else {
+            return std::make_pair(Bst::iterator{target_parent},false);
         }
         ++new_height;
     }
@@ -356,41 +422,9 @@ std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const
 }
 
 template< class K, class V, class cmp>
-std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
+std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const Bst::kvpair& kv){
     
-    Node *target{root}, *target_parent{nullptr};
-    int new_height{0};
+    kvpair kvcopy{kv};
+    return insert(std::move(kv));
 
-    // navigate the tree until insertion point is found 
-    while(target){
-        // <
-        if( cmp()(kv.first,target->kv.first) && ! cmp()(target->kv.first, kv.first)){
-            target_parent = target;
-            target = target->l_child;
-            if(target == nullptr){
-                target_parent->l_child = new Node{std::move(kv)};
-                target_parent->l_child->parent = target_parent;
-            }
-        }
-        // >
-        else if( cmp()(target->kv.first, kv.first) && ! cmp()(kv.first,target->kv.first)){
-            target_parent = target;
-            target = target->r_child;
-            if(target == nullptr){
-                target_parent->r_child = new Node{std::move(kv)};
-                target_parent->r_child->parent = target_parent;
-            }
-        }
-        // == --> no insertion
-        else{
-            return std::make_pair(Bst::iterator{target},false);
-        }
-        ++new_height;
-    }
-    
-    // update size and height (if necessary)
-    ++size;
-    if(height<new_height){ height = new_height;}
-
-    return std::make_pair(Bst::iterator{target},true);
 }
