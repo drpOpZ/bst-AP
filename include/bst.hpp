@@ -271,8 +271,18 @@ class Bst{
     /// 
     /// @param key        key of the element to return
     /// @return V&        reference to the element at key (initializes it if not present already)
-    V& operator[](K&& key);
-    V& operator[](const K& key);
+    V& operator[](K&& key){
+        iterator it{find(std::move(key))};
+        if(it==end()){
+            it = insert(std::move(std::make_pair(key,V()))).first;
+        }
+        return (*it).second;
+    }
+    
+    V& operator[](const K& key){
+        auto cp{key};
+        return (*this)[std::move(cp)];
+    }
 
     /// @brief Remove the element at given key (if present) while preserving bst structure.
     /// 

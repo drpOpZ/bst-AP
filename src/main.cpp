@@ -46,6 +46,7 @@ int main(){
     //test mv ctor
     auto mv{std::move(cpy)};
     std::cout<<"moved copy\n"<<mv<<std::endl;
+    std::cout<<"copy\n"<<cpy<<std::endl;
 
     //test find
     int key;
@@ -61,7 +62,13 @@ int main(){
         std::cout<<"Not found!"<<std::endl;
     }
 
-    std::cout<<"copy\n"<<cpy<<std::endl;
+    //test operator[]
+    double val;
+    std::cout<<"Chose key and new value";
+    std::cin>>key>>val;
+    bst[key]=val;
+    std::cout<<"original modified\n"<<bst<<std::endl;
     
+
     return 0;
 }
