@@ -52,7 +52,7 @@ class Bst{
 
         /// @brief Destroy the Node object and its descents
         /// 
-        ~Node();
+        ~Node(){delete_subtree_rec();}
 
         // copy/move semantics---------
 
@@ -117,20 +117,27 @@ class Bst{
       public:
         explicit _iterator(Node* n): current(n){};
 
-        bool operator==(const _iterator& rhs){return current == rhs.current;}
-        bool operator!=(const _iterator& rhs){return !(current == rhs.current);}
+        bool operator==(const _iterator& rhs) const{return current == rhs.current;}
+        bool operator!=(const _iterator& rhs) const{return !(current == rhs.current);}
 
         /// @brief pre-increment
         /// 
         /// @return _iterator& The incremented _iterator obj
-        _iterator& operator++(){ select_next(); return *this;}
+        _iterator& operator++(){
+            select_next();
+            return *this;
+        }
         
         /// @brief post-increment
         ///
         /// @return _iterator Copy of the _iterator before increment 
-        _iterator operator++(int){ _iterator cp{current}; select_next(); return cp;}
+        _iterator operator++(int){
+            _iterator cp{current};
+            select_next();
+            return cp;
+        }
 
-        KV& operator*(){
+        KV& operator*() const{
             if(current==nullptr){
                 throw std::out_of_range("Bst iterator out of range!");
             }
@@ -148,69 +155,80 @@ class Bst{
     // ctors, dtors -----------------------------------------------------------
     Bst(): root{nullptr}, size{0}, height{-1}{};
 
-    ~Bst();
+    ~Bst(){ if(root){delete root;}}
 
     // copy/move semantics ----------------------------------------------------
 
-    Bst(Bst&& bst);
-    Bst& operator=(Bst&& rhs);
+    Bst(Bst&& bst):
+        root{std::move(bst.root)},
+        size{bst.size},
+        height{bst.height}{};
 
-    Bst(const Bst& bst);
-    Bst& operator=(const Bst& rhs);
+    Bst& operator=(Bst&& rhs){
+        
+        // clean up and steal pointer
+        if(root){ delete root;}
+        root = std::move(rhs.root);
+        
+        size = rhs.size;
+        height = rhs.height;
+        return *this;
+    }
+
+    Bst(const Bst& bst):
+        root{bst.root?new Node{*bst.root}:nullptr},
+        size{bst.size},
+        height{bst.height}{};
+        
+    Bst& operator=(const Bst& rhs){
+        if(root){ delete root;}
+        root = rhs.root ? new Node{*rhs.root}:nullptr;
+        size = rhs.size;
+        height = rhs.height;
+
+        return *this;
+    }
 
     // Iterator interface -----------------------------------------------------
 
-    typedef _iterator<kvpair> iterator ;
+    typedef _iterator<kvpair> iterator;
     typedef _iterator<const kvpair> const_iterator;
 
-    /// @brief Returns the smallest element i.e. the leftmost
+  private:
+    /// @brief base iterator begin method
     /// 
-    /// @return iterator iterator to leftmost element
-    iterator begin(){
+    /// @tparam It - either iterator or const_iterator
+    /// @return iterator to smallest (ie leftmost) element 
+    template<class It>
+    It _begin() const{
         Node* first{root};
         if(first){
             while(first->l_child){
                 first = first->l_child;
             }
         }
-        return iterator(first);
-    };
+        return It(first);
+    }
 
-    /// @brief 
+    /// @brief base iterator end method
     /// 
-    /// @return const_iterator 
-    const_iterator cbegin() const{
-        Node* first{root};
-        if(first){
-            while(first->l_child){
-                first = first->l_child;
-            }
-        }
-        return const_iterator(first);
-    };
+    /// @tparam It - either iterator or const_iterator
+    /// @return It iterator to nullptr
+    template<class It>
+    It _end() const{return It(nullptr);}
 
-    /// @brief Returns one-past greatest element i.e. nullptr
-    /// 
-    /// @return iterator iterator to nullptr
-    iterator end(){ return iterator(nullptr);}
+  public:
+    
+    inline iterator begin(){ return _begin<iterator>();}
+    inline const_iterator begin() const{ return _begin<const_iterator>();}
 
-    /// @brief Returns one-past greatest element i.e. nullptr
-    /// 
-    /// @return const_iterator const_iterator to nullptr
-    const_iterator cend() const{ return const_iterator(nullptr);}
-
+    inline iterator end(){ return _end<iterator>();}
+    inline const_iterator end() const{ return _end<const_iterator>();}
 
     //---------------
     // Node insertion
     //---------------
 
-    /// @brief Inserts a new node in the tree by copying given key/value pair.
-    ///
-    /// If given key is already used the tree is left unchanged.
-    /// 
-    /// @param kv   key/value pair to copy
-    /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
-    std::pair<iterator, bool> insert(const kvpair& kv);
 
     /// @brief Inserts a new node in the tree by moving given key/value pair.
     ///
@@ -219,6 +237,17 @@ class Bst{
     /// @param kv   key/value pair to move
     /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
     std::pair<iterator, bool> insert(kvpair&& kv);
+
+    /// @brief Inserts a new node in the tree by copying given key/value pair.
+    ///
+    /// If given key is already used the tree is left unchanged.
+    /// 
+    /// @param kv   key/value pair to copy
+    /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+    std::pair<iterator, bool> insert(const kvpair& kv){  
+        kvpair kvcopy{kv};
+        return insert(std::move(kv));
+    }
 
     /// @brief Inserts a new node in the tree by creating it in place from given args.
     /// 
@@ -229,7 +258,11 @@ class Bst{
     /// @param vctorargs        values forwarded to V ctor
     /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
     template< class... vctorargtypes >
-    std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
+    std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs){
+        V value{vctorargs...};
+        kvpair kv{std::make_pair(key, std::move(value))};
+        return insert(std::move(kv));
+    }
 
     //------------
     // Node access
@@ -271,7 +304,12 @@ class Bst{
     /// @param bst  current object
     /// @return std::ostream& the ostream, to allow chained call
     friend
-    std::ostream& operator<< <>(std::ostream& os, const Bst& bst);
+    std::ostream& operator<< (std::ostream& os, const Bst& bst){
+        for (auto& kv:bst){
+            os<<"("<<kv.first<<","<<kv.second<<") ";
+        }
+        return os;
+    }
 
     //--------
     // Balance
@@ -301,11 +339,6 @@ void Bst<K,V,cmp>::Node::delete_subtree_rec(){
         delete r_child;
         r_child = nullptr;
     }
-}
-
-template< class K, class V, class cmp>
-Bst<K,V,cmp>::Node::~Node(){
-    delete_subtree_rec();
 }
 
 template< class K, class V, class cmp>
@@ -384,13 +417,6 @@ void Bst<K,V,cmp>::_iterator<KV>::select_next(){
 //----
 
 template< class K, class V, class cmp>
-Bst<K,V,cmp>::~Bst(){
-    if(root){
-        delete root;
-    }
-}
-
-template< class K, class V, class cmp>
 std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
     Node* target_parent{root};
     
@@ -444,20 +470,4 @@ std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::
     if(height<new_height){ height = new_height;}
 
     return std::make_pair(Bst::iterator{target},true);
-}
-
-template< class K, class V, class cmp>
-std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const Bst::kvpair& kv){
-    
-    kvpair kvcopy{kv};
-    return insert(std::move(kv));
-
-}
-
-template< class K, class V, class cmp>
-template< class... vctorargtypes >
-std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::emplace(const K& key, vctorargtypes&&... vctorargs){
-    V value{vctorargs...};
-    kvpair kv{std::make_pair(key, std::move(value))};
-    return insert(std::move(kv));
 }

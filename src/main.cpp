@@ -30,9 +30,16 @@ int main(){
     cpkv.second+=9.01;
     std::cout<<"duplcate insert success:"<<bst.insert(cpkv).second<<std::endl;
 
-    for(auto kv: bst){
-        std::cout<<"("<<kv.first<<","<<kv.second<<") ";
+    std::cout<<"original\n"<<bst<<std::endl;
+
+    auto cpy{bst};
+    std::cout<<"copy\n"<<cpy<<std::endl;
+
+    for(auto& kv:cpy){
+        kv.second+=5;
     }
+    std::cout<<"original\n"<<bst<<std::endl;
+    std::cout<<"copy\n"<<cpy<<std::endl;
 
     return 0;
 }
