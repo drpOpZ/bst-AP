@@ -32,7 +32,9 @@ int main(){
 
     std::cout<<"original\n"<<bst<<std::endl;
 
+    //test copy ctor
     auto cpy{bst};
+    cpy = bst;
     std::cout<<"copy\n"<<cpy<<std::endl;
 
     for(auto& kv:cpy){
@@ -41,5 +43,25 @@ int main(){
     std::cout<<"original\n"<<bst<<std::endl;
     std::cout<<"copy\n"<<cpy<<std::endl;
 
+    //test mv ctor
+    auto mv{std::move(cpy)};
+    std::cout<<"moved copy\n"<<mv<<std::endl;
+
+    //test find
+    int key;
+    std::cout<<"Chose key: ";
+    std::cin>>key;
+    auto f{mv.find(key)};
+    if(f!=mv.end()){
+        std::cout<<"Found V:"<<(*f).second<<", setting to 0"<<std::endl;
+        (*f).second=0;
+        std::cout<<"moved copy modified\n"<<mv<<std::endl;
+    }
+    else{
+        std::cout<<"Not found!"<<std::endl;
+    }
+
+    std::cout<<"copy\n"<<cpy<<std::endl;
+    
     return 0;
 }

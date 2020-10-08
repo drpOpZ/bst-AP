@@ -47,52 +47,15 @@ class Bst{
         Node(const kvpair& p_kv): kv{p_kv}{};
         Node(kvpair&& p_kv): kv{std::move(p_kv)}{};
 
+        /// @brief Copy ctor
+        Node(const Node& node);
+
         /// @brief Recursively deletes all node's descents
         void delete_subtree_rec();
 
         /// @brief Destroy the Node object and its descents
         /// 
         ~Node(){delete_subtree_rec();}
-
-        // copy/move semantics---------
-
-        /// @brief Move ctor
-        Node(Node&& node){
-
-            kv = std::move(node.kv);
-
-            if(node.l_child){
-              l_child = node.l_child;
-              l_child->parent = this;
-            }
-            if(node.r_child){
-              r_child = node.r_child;
-              r_child->parent = this;
-            }
-
-        }
-
-        /// @brief Move assignment
-        Node& operator=(Node&& rhs){
-            delete_subtree_rec();
-            kv = std::move(rhs.kv);
-
-            if(rhs.l_child){
-              l_child = rhs.l_child;
-              l_child->parent = this;
-            }
-            if(rhs.r_child){
-              r_child = rhs.r_child;
-              r_child->parent = this;
-            }
-            return *this;
-        }
-
-        /// @brief Copy ctor
-        Node(const Node& node);
-
-        /// @brief Copy assignment
-        Node& operator=(const Node& rhs);
 
     };
 
@@ -160,18 +123,33 @@ class Bst{
     // copy/move semantics ----------------------------------------------------
 
     Bst(Bst&& bst):
-        root{std::move(bst.root)},
+        root{bst.root},
         size{bst.size},
-        height{bst.height}{};
+        height{bst.height}{
+            if(root){
+                if(root->l_child){root->l_child->parent = root;}
+                if(root->r_child){root->r_child->parent = root;}
+            }
+            bst.root=nullptr;
+            bst.size=0;
+            bst.height=-1;
+        }
 
     Bst& operator=(Bst&& rhs){
-        
-        // clean up and steal pointer
-        if(root){ delete root;}
-        root = std::move(rhs.root);
-        
-        size = rhs.size;
-        height = rhs.height;
+        if(this != &rhs){
+            if(root){delete root;}
+
+            root = rhs.root;
+            size = rhs.size;
+            height = rhs.height;
+            if(root){
+                if(root->l_child){root->l_child->parent = root;}
+                if(root->r_child){root->r_child->parent = root;}
+            }
+            rhs.root=nullptr;
+            rhs.size=0;
+            rhs.height=-1;
+        }
         return *this;
     }
 
@@ -179,13 +157,14 @@ class Bst{
         root{bst.root?new Node{*bst.root}:nullptr},
         size{bst.size},
         height{bst.height}{};
-        
-    Bst& operator=(const Bst& rhs){
-        if(root){ delete root;}
-        root = rhs.root ? new Node{*rhs.root}:nullptr;
-        size = rhs.size;
-        height = rhs.height;
 
+    Bst& operator=(const Bst& rhs){
+        if(this != &rhs){
+            if(root){delete root;}
+            root = rhs.root?new Node{*rhs.root}:nullptr;
+            size = rhs.size;
+            height = rhs.height;
+        }
         return *this;
     }
 
@@ -221,9 +200,11 @@ class Bst{
     
     inline iterator begin(){ return _begin<iterator>();}
     inline const_iterator begin() const{ return _begin<const_iterator>();}
+    inline const_iterator cbegin() const{ return _begin<const_iterator>();}
 
     inline iterator end(){ return _end<iterator>();}
     inline const_iterator end() const{ return _end<const_iterator>();}
+    inline const_iterator cend() const{ return _end<const_iterator>();}
 
     //---------------
     // Node insertion
@@ -268,19 +249,30 @@ class Bst{
     // Node access
     //------------
 
+    template<class It>
+    It _find(const K& key) const{
+        Node* target{root};
+        while(target){
+            bool gt{cmp()(target->kv.first,key)}, lt{cmp()(key,target->kv.first)};
+            if(gt==lt){ break;}
+            target = lt? target->l_child : target->r_child;
+        }
+        return It(target);
+    }
+
     /// @brief returns an iterator to given key (or to end() if none was found)
     /// 
     /// @param key        key to find
     /// @return iterator  iterator to value found (or end() if key is not present)
-    iterator find(const K& key);
-    const_iterator find(const K& key) const;
+    inline iterator find(const K& key){ return _find<iterator>(key);}
+    inline const_iterator find(const K& key) const{ return _find<const_iterator>(key);};
 
     /// @brief returns a r/w reference to value at given key (eventually initializing it).
     /// 
     /// @param key        key of the element to return
     /// @return V&        reference to the element at key (initializes it if not present already)
-    V& operator[](const K& key);
     V& operator[](K&& key);
+    V& operator[](const K& key);
 
     /// @brief Remove the element at given key (if present) while preserving bst structure.
     /// 
@@ -358,17 +350,6 @@ Bst<K,V,cmp>::Node::Node(const Node& node):
     }
 }
 
-template< class K, class V, class cmp>
-typename Bst<K,V,cmp>::Node& Bst<K,V,cmp>::Node::operator=(const Node& rhs){
-
-    // Identity check
-    if(&rhs != this){
-      auto cpy{rhs};
-      (*this) = std::move(cpy);
-    }
-
-    return *this;
-}
 
 //---------
 // iterator
