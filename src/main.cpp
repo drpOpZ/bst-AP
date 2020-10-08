@@ -13,7 +13,8 @@ int main(){
         std::cout<<"inserting "<<k<<" "<<v<<"..."<<std::flush;
 
         //test move-insert
-        auto out {bst.insert(std::make_pair(iii,2.7*iii))};
+        //auto out {bst.insert(std::make_pair(iii,2.7*iii))};
+        auto out {bst.emplace(iii,2.7*iii)};
         
 
         std::cout<< (out.second?"done! ":"failed! ")<<
@@ -32,5 +33,6 @@ int main(){
     for(auto kv: bst){
         std::cout<<"("<<kv.first<<","<<kv.second<<") ";
     }
+
     return 0;
 }

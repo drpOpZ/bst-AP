@@ -96,6 +96,48 @@ class Bst{
 
     };
 
+    /// @brief Base template iterator class
+    /// 
+    /// Used to define both iterator and const_iterator avoiding
+    /// duplication.
+    /// @tparam KV Type returned by dereference op
+    template<class KV>
+    class _iterator{
+        
+        Node* current;
+
+        /// @brief Advances current to the next accordingly to the tree order
+        /// 
+        /// Next node is either (checked in order):
+        /// 1. leftmost node of right subtree (including r_child)
+        /// 2. first ancestor whose l_child is node or an ancestor
+        /// 3. nullptr = end() (stays there if it already is)
+        void select_next();
+
+      public:
+        explicit _iterator(Node* n): current(n){};
+
+        bool operator==(const _iterator& rhs){return current == rhs.current;}
+        bool operator!=(const _iterator& rhs){return !(current == rhs.current);}
+
+        /// @brief pre-increment
+        /// 
+        /// @return _iterator& The incremented _iterator obj
+        _iterator& operator++(){ select_next(); return *this;}
+        
+        /// @brief post-increment
+        ///
+        /// @return _iterator Copy of the _iterator before increment 
+        _iterator operator++(int){ _iterator cp{current}; select_next(); return cp;}
+
+        KV& operator*(){
+            if(current==nullptr){
+                throw std::out_of_range("Bst iterator out of range!");
+            }
+            return current->kv;
+        }
+    };
+
     Node* root;
 
     unsigned int size;
@@ -118,144 +160,126 @@ class Bst{
 
     // Iterator interface -----------------------------------------------------
 
-    class iterator{
-        
-        Node* current;
+    typedef _iterator<kvpair> iterator ;
+    typedef _iterator<const kvpair> const_iterator;
 
-        /// @brief Advances current to the next accordingly to the tree order
-        /// 
-        /// Next node is either (checked in order):
-        /// 1. leftmost node of right subtree (including r_child)
-        /// 2. first ancestor whose l_child is node or an ancestor
-        /// 3. nullptr = end() (stays there if it already is)
-        void select_next();
-
-      public:
-        explicit iterator(Node* n): current(n){};
-
-        bool operator==(const iterator& rhs){return current == rhs.current;}
-        bool operator!=(const iterator& rhs){return !(current == rhs.current);}
-
-        /// @brief pre-increment
-        /// 
-        /// @return iterator& The incremented iterator obj
-        iterator& operator++(){ select_next(); return *this;}
-        
-        /// @brief post-increment
-        ///
-        /// @return iterator Copy of the iterator before increment 
-        iterator operator++(int){ iterator cp{current}; select_next(); return cp;}
-
-        kvpair& operator*(){
-            if(current==nullptr){
-                throw std::out_of_range("Bst iterator out of range!");
+    /// @brief Returns the smallest element i.e. the leftmost
+    /// 
+    /// @return iterator iterator to leftmost element
+    iterator begin(){
+        Node* first{root};
+        if(first){
+            while(first->l_child){
+                first = first->l_child;
             }
-            return current->kv;
         }
+        return iterator(first);
     };
 
-    class const_iterator{
-        //TODO: basically duplicate iterator
+    /// @brief 
+    /// 
+    /// @return const_iterator 
+    const_iterator cbegin() const{
+        Node* first{root};
+        if(first){
+            while(first->l_child){
+                first = first->l_child;
+            }
+        }
+        return const_iterator(first);
     };
 
-  /// @brief Returns the smallest element i.e. the leftmost
-  /// 
-  /// @return iterator iterator to leftmost element
-  iterator begin(){
-      Node* first{root};
-      while(first->l_child){first = first->l_child;}
-      return iterator(first);
-  };
-  const const_iterator cbegin() const;
+    /// @brief Returns one-past greatest element i.e. nullptr
+    /// 
+    /// @return iterator iterator to nullptr
+    iterator end(){ return iterator(nullptr);}
 
-  /// @brief Returns one-past greatest element i.e. nullptr
-  /// 
-  /// @return iterator iterator to nullptr
-  iterator end(){ return iterator(nullptr);}
-  const const_iterator cend() const{ return const_iterator(nullptr);}
+    /// @brief Returns one-past greatest element i.e. nullptr
+    /// 
+    /// @return const_iterator const_iterator to nullptr
+    const_iterator cend() const{ return const_iterator(nullptr);}
 
 
-  //---------------
-  // Node insertion
-  //---------------
+    //---------------
+    // Node insertion
+    //---------------
 
-  /// @brief Inserts a new node in the tree by copying given key/value pair.
-  ///
-  /// If given key is already used the tree is left unchanged.
-  /// 
-  /// @param kv   key/value pair to copy
-  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
-  std::pair<iterator, bool> insert(const kvpair& kv);
+    /// @brief Inserts a new node in the tree by copying given key/value pair.
+    ///
+    /// If given key is already used the tree is left unchanged.
+    /// 
+    /// @param kv   key/value pair to copy
+    /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+    std::pair<iterator, bool> insert(const kvpair& kv);
 
-  /// @brief Inserts a new node in the tree by moving given key/value pair.
-  ///
-  /// If given key is already used the tree is left unchanged.
-  /// 
-  /// @param kv   key/value pair to move
-  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+    /// @brief Inserts a new node in the tree by moving given key/value pair.
+    ///
+    /// If given key is already used the tree is left unchanged.
+    /// 
+    /// @param kv   key/value pair to move
+    /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+    std::pair<iterator, bool> insert(kvpair&& kv);
 
-  std::pair<iterator, bool> insert(kvpair&& kv);
+    /// @brief Inserts a new node in the tree by creating it in place from given args.
+    /// 
+    /// If given key is already used the tree is left unchanged.
+    /// 
+    /// @tparam vctorargtypes   argument types of V ctor 
+    /// @param key              key value to insert the element at (if not present)
+    /// @param vctorargs        values forwarded to V ctor
+    /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
+    template< class... vctorargtypes >
+    std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
 
-  /// @brief Inserts a new node in the tree by creating it in place from given args.
-  /// 
-  /// If given key is already used the tree is left unchanged.
-  /// 
-  /// @tparam vctorargtypes   argument types of V ctor 
-  /// @param key              key value to insert the element at (if not present)
-  /// @param vctorargs        values forwarded to V ctor
-  /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
-  template< class... vctorargtypes >
-  std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
+    //------------
+    // Node access
+    //------------
 
-  //------------
-  // Node access
-  //------------
+    /// @brief returns an iterator to given key (or to end() if none was found)
+    /// 
+    /// @param key        key to find
+    /// @return iterator  iterator to value found (or end() if key is not present)
+    iterator find(const K& key);
+    const_iterator find(const K& key) const;
 
-  /// @brief returns an iterator to given key (or to end() if none was found)
-  /// 
-  /// @param key        key to find
-  /// @return iterator  iterator to value found (or end() if key is not present)
-  iterator find(const K& key);
-  const_iterator find(const K& key) const;
+    /// @brief returns a r/w reference to value at given key (eventually initializing it).
+    /// 
+    /// @param key        key of the element to return
+    /// @return V&        reference to the element at key (initializes it if not present already)
+    V& operator[](const K& key);
+    V& operator[](K&& key);
 
-  /// @brief returns a r/w reference to value at given key (eventually initializing it).
-  /// 
-  /// @param key        key of the element to return
-  /// @return V&        reference to the element at key (initializes it if not present already)
-  V& operator[](const K& key);
-  V& operator[](K&& key);
+    /// @brief Remove the element at given key (if present) while preserving bst structure.
+    /// 
+    /// @param key Key of the element to remove
+    void erase(const K& key);
 
-  /// @brief Remove the element at given key (if present) while preserving bst structure.
-  /// 
-  /// @param key Key of the element to remove
-  void erase(const K& key);
+    /// @brief Clears the content of the tree
+    /// 
+    void clear();
 
-  /// @brief Clears the content of the tree
-  /// 
-  void clear();
+    //-------
+    // Output
+    //-------
 
-  //-------
-  // Output
-  //-------
+    unsigned int get_size() const {return size;}
+    int get_height() const{return height;}
+    
+    /// @brief Sends string representation of bst to ostream
+    /// 
+    /// @param os   output stream
+    /// @param bst  current object
+    /// @return std::ostream& the ostream, to allow chained call
+    friend
+    std::ostream& operator<< <>(std::ostream& os, const Bst& bst);
 
-  unsigned int get_size(){return size;}
-  int get_height(){return height;}
-  
-  /// @brief Sends string representation of bst to ostream
-  /// 
-  /// @param os   output stream
-  /// @param bst  current object
-  /// @return std::ostream& the ostream, to allow chained call
-  friend
-  std::ostream& operator<< <>(std::ostream& os, const Bst& bst);
+    //--------
+    // Balance
+    //--------
 
-  //--------
-  // Balance
-  //--------
-
-  /// @brief Balances the tree
-  /// 
-  void balance();
+    /// @brief Balances the tree
+    /// 
+    void balance();
 };
 
 
@@ -317,8 +341,9 @@ typename Bst<K,V,cmp>::Node& Bst<K,V,cmp>::Node::operator=(const Node& rhs){
 // iterator
 //---------
 
-template< class K, class V, class cmp>
-void Bst<K,V,cmp>::iterator::select_next(){
+template<class K, class V, class cmp>
+template<class KV>
+void Bst<K,V,cmp>::_iterator<KV>::select_next(){
     
     // 3. stay at end if there
     if(current == nullptr){
@@ -427,4 +452,12 @@ std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(const
     kvpair kvcopy{kv};
     return insert(std::move(kv));
 
+}
+
+template< class K, class V, class cmp>
+template< class... vctorargtypes >
+std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::emplace(const K& key, vctorargtypes&&... vctorargs){
+    V value{vctorargs...};
+    kvpair kv{std::make_pair(key, std::move(value))};
+    return insert(std::move(kv));
 }
