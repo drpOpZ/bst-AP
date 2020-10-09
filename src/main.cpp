@@ -75,5 +75,9 @@ int main(){
     bst.erase(key);
     std::cout<<"original modified\n"<<bst<<std::endl;
 
+    //test balance
+    bst.balance();
+    std::cout<<"balanced\n"<<bst<<std::endl;
+
     return 0;
 }

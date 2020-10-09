@@ -313,6 +313,7 @@ class Bst{
         return (*this)[std::move(cp)];
     }
 
+  private:
     void erase_node(Node* n){
 
         // case 0: key not present
@@ -330,9 +331,6 @@ class Bst{
         // case 1: no children
         if(n->l_child==nullptr && n->r_child == nullptr){
             *parent_child = nullptr;
-            delete n;
-            --size;
-            return;
         }
         // case 2: both children
         else if(n->l_child!=nullptr && n->r_child!=nullptr){
@@ -360,18 +358,18 @@ class Bst{
                 if(parent_child){*parent_child = n->l_child;}
                 n->l_child->parent = n->parent;
                 n->l_child = nullptr;
-                delete n;
             }
             else{
                 if(parent_child){*parent_child = n->r_child;}
                 n->r_child->parent = n->parent;
                 n->r_child = nullptr;
-                delete n;
             }
-            --size;
-            return;
         }
+        delete n;
+        --size;
+        return;
     }
+  public:
 
     /// @brief Remove the element at given key (if present) while preserving bst structure.
     /// 
@@ -422,10 +420,50 @@ class Bst{
     //--------
     // Balance
     //--------
+  private:
+    void balance_rec(kvpair**& kvs, Bst& out, int s, int f){
+        
+        if(f<s){
+            return;
+        }
 
+        if(s==f){
+            out.insert(std::move(std::make_pair( kvs[s]->first, kvs[s]->second)));
+        }
+        else if(f-s==1){
+            out.insert(std::move(std::make_pair(kvs[s]->first,kvs[s]->second)));
+            out.insert(std::move(std::make_pair(kvs[f]->first,kvs[f]->second)));
+        }
+        else{
+            int mid= s + (f-s)/2;
+            out.insert(std::move(std::make_pair(kvs[mid]->first,kvs[mid]->second)));
+            balance_rec(kvs,out,s,mid-1);
+            balance_rec(kvs,out,mid+1,f);
+        }
+    }
+  
+  public:
     /// @brief Balances the tree
     /// 
-    void balance();
+    void balance(){
+
+        //TODO: h<=log_2(size) -> return
+        if(size<3){return;}
+
+        kvpair** kvs{new kvpair*[size]};
+        
+        int iii{0};
+        for(auto& kv: *this){
+            kvs[iii]=&kv;
+            ++iii;
+        }
+
+        Bst balanced;
+        balance_rec(kvs,balanced,0,size-1);
+        delete[] kvs;
+
+        *this = std::move(balanced);
+    }
 };
 
 
