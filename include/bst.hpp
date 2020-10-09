@@ -59,6 +59,41 @@ class Bst{
 
     };
 
+    static Node* select_next_node(Node *&n){
+    
+        // 3. stay at end if there
+        if(n == nullptr){
+            return nullptr;
+        }
+
+        Node* target{nullptr};
+
+        // 1. leftmost of r_child subtree
+        if(n->r_child){
+            
+            // go right
+            target = n->r_child;
+            // then left while possible
+            while(target->l_child){
+                target = target->l_child;
+            }
+        }
+        //2. first ancestor whose l_child is ancestor
+        else if(n->parent){
+
+            // go up while possible and not l_child of parent
+            target = n;
+            while( (target->parent!=nullptr) &&
+                (target != (target->parent->l_child))){
+                target = target->parent;
+            }
+            // .. and up one step (eventually up to end())
+            target = target->parent;
+        }
+        
+        return target;
+    }
+
     /// @brief Base template iterator class
     /// 
     /// Used to define both iterator and const_iterator avoiding
@@ -68,14 +103,6 @@ class Bst{
     class _iterator{
         
         Node* current;
-
-        /// @brief Advances current to the next accordingly to the tree order
-        /// 
-        /// Next node is either (checked in order):
-        /// 1. leftmost node of right subtree (including r_child)
-        /// 2. first ancestor whose l_child is node or an ancestor
-        /// 3. nullptr = end() (stays there if it already is)
-        void select_next();
 
       public:
         explicit _iterator(Node* n): current(n){};
@@ -87,7 +114,7 @@ class Bst{
         /// 
         /// @return _iterator& The incremented _iterator obj
         _iterator& operator++(){
-            select_next();
+            current = select_next_node(current);
             return *this;
         }
         
@@ -96,7 +123,7 @@ class Bst{
         /// @return _iterator Copy of the _iterator before increment 
         _iterator operator++(int){
             _iterator cp{current};
-            select_next();
+            current = select_next_node(current);
             return cp;
         }
 
@@ -249,6 +276,7 @@ class Bst{
     // Node access
     //------------
 
+  private:
     template<class It>
     It _find(const K& key) const{
         Node* target{root};
@@ -259,6 +287,7 @@ class Bst{
         }
         return It(target);
     }
+  public:
 
     /// @brief returns an iterator to given key (or to end() if none was found)
     /// 
@@ -278,20 +307,97 @@ class Bst{
         }
         return (*it).second;
     }
-    
+
     V& operator[](const K& key){
         auto cp{key};
         return (*this)[std::move(cp)];
     }
 
+    void erase_node(Node* n){
+
+        // case 0: key not present
+        if(n==nullptr){
+            return;
+        }
+
+        Node** parent_child{nullptr};
+        if(n->parent){
+            parent_child= (n==n->parent->l_child)?
+                           &(n->parent->l_child) : 
+                           &(n->parent->r_child);
+        }
+
+        // case 1: no children
+        if(n->l_child==nullptr && n->r_child == nullptr){
+            *parent_child = nullptr;
+            delete n;
+            --size;
+            return;
+        }
+        // case 2: both children
+        else if(n->l_child!=nullptr && n->r_child!=nullptr){
+            Node* successor{select_next_node(n)};
+            
+            //replace n with successor
+            Node *n_p{n->parent}, *n_l{n->l_child},*n_r{n->r_child};
+            n->l_child = nullptr;
+            n->r_child = nullptr;
+            delete n;
+            n = new Node{successor->kv};
+            n->parent = n_p;
+            n->l_child = n_l;
+            n->r_child = n_r;
+            if(parent_child){*parent_child=n;}
+            n_l->parent = n;
+            n_r->parent = n;
+
+            erase_node(successor);
+            return;
+        }
+        // case 3: one child
+        else{
+            if(n->l_child){
+                if(parent_child){*parent_child = n->l_child;}
+                n->l_child->parent = n->parent;
+                n->l_child = nullptr;
+                delete n;
+            }
+            else{
+                if(parent_child){*parent_child = n->r_child;}
+                n->r_child->parent = n->parent;
+                n->r_child = nullptr;
+                delete n;
+            }
+            --size;
+            return;
+        }
+    }
+
     /// @brief Remove the element at given key (if present) while preserving bst structure.
     /// 
     /// @param key Key of the element to remove
-    void erase(const K& key);
+    void erase(const K& key){
+
+        // find node corresponding to key
+        Node* n{root};
+        while(n){
+            bool gt{cmp()(n->kv.first,key)}, lt{cmp()(key,n->kv.first)};
+            if(gt==lt){ break;}
+            n = lt? n->l_child : n->r_child;
+        }
+        erase_node(n);
+    }
 
     /// @brief Clears the content of the tree
     /// 
-    void clear();
+    void clear(){
+        if(root){
+            delete root;
+            root = nullptr;
+            size=0;
+            height=-1;
+        }
+    }
 
     //-------
     // Output
@@ -364,43 +470,6 @@ Bst<K,V,cmp>::Node::Node(const Node& node):
 //---------
 // iterator
 //---------
-
-template<class K, class V, class cmp>
-template<class KV>
-void Bst<K,V,cmp>::_iterator<KV>::select_next(){
-    
-    // 3. stay at end if there
-    if(current == nullptr){
-      return;
-    }
-
-    Node* target{nullptr};
-
-    // 1. leftmost of r_child subtree
-    if(current->r_child){
-        
-        // go right
-        target = current->r_child;
-        // then left while possible
-        while(target->l_child){
-            target = target->l_child;
-        }
-    }
-    //2. first ancestor whose l_child is ancestor
-    else if(current->parent){
-
-        // go up while possible and not l_child of parent
-        target = current;
-        while( (target->parent!=nullptr) &&
-              (target != (target->parent->l_child))){
-            target = target->parent;
-        }
-        // .. and up one step (eventually up to end())
-        target = target->parent;
-    }
-    
-    current = target;
-}
 
 
 //----

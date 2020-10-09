@@ -68,7 +68,12 @@ int main(){
     std::cin>>key>>val;
     bst[key]=val;
     std::cout<<"original modified\n"<<bst<<std::endl;
-    
+
+    //test erase
+    std::cout<<"Chose key to erase";
+    std::cin>>key;
+    bst.erase(key);
+    std::cout<<"original modified\n"<<bst<<std::endl;
 
     return 0;
 }
