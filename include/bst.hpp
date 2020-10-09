@@ -140,6 +140,20 @@ class Bst{
     unsigned int size;
     int height;
 
+    int compute_height_rec(Node* n){
+        int hl{0},hr{0};
+        if(n->l_child){hl=1+compute_height_rec(n->l_child);}
+        if(n->r_child){hr=1+compute_height_rec(n->r_child);}
+        return hl>hr?hl:hr;
+    }
+
+    void recompute_height(){
+        if(size==0){
+            height=-1;
+        }
+        height=compute_height_rec(root);
+    }
+
   public:
 
     // ctors, dtors -----------------------------------------------------------
@@ -367,6 +381,7 @@ class Bst{
         }
         delete n;
         --size;
+        recompute_height();
         return;
     }
   public:
@@ -411,6 +426,7 @@ class Bst{
     /// @return std::ostream& the ostream, to allow chained call
     friend
     std::ostream& operator<< (std::ostream& os, const Bst& bst){
+        os<<"size:"<<bst.size<<" height:"<<bst.height<<"\n";
         for (auto& kv:bst){
             os<<"("<<kv.first<<","<<kv.second<<") ";
         }
