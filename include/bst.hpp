@@ -2,10 +2,11 @@
 
 #include <iostream> 
 #include <exception>
-#include <utility>      //for std::pair
-#include <string>       //for pretty printing
-#include <functional>   //for std::less
-#include <cmath>        //used in balancing
+#include <utility>      // for std::pair
+#include <string>       // for pretty printing
+#include <sstream>      // ""
+#include <functional>   // for std::less
+#include <cmath>        // used in balancing
 
 
 // forward declarations for friend operator<<
@@ -169,6 +170,7 @@ class Bst{
     void recompute_height() noexcept{
         if(size==0){
             height=-1;
+            return;
         }
         height=compute_height_rec(root);
     }
@@ -391,7 +393,7 @@ class Bst{
             return;
         }
 
-        Node** parent_child{nullptr};
+        Node** parent_child{&root};
         if(n->parent){
             parent_child= (n==n->parent->l_child)?
                            &(n->parent->l_child) : 
@@ -402,7 +404,7 @@ class Bst{
         if(n->l_child==nullptr && n->r_child == nullptr){
             
             // just update parent
-            if(parent_child){*parent_child = nullptr;}
+            *parent_child = nullptr;
         }
         // case 2: both children -> recursion and break
         else if(n->l_child!=nullptr && n->r_child!=nullptr){
@@ -425,8 +427,8 @@ class Bst{
             n->l_child = n_l;
             n->r_child = n_r;
             
-            // ... in parent (if any) ...
-            if(parent_child){*parent_child=n;}
+            // ... in parent ...
+            *parent_child=n;
             
             // ... and in children. Note that both are there beause we checked.
             n_l->parent = n;
@@ -440,12 +442,13 @@ class Bst{
         // case 3: one child -> link parent and child
         else{
             if(n->l_child){
-                if(parent_child){*parent_child = n->l_child;}
+                *parent_child = n->l_child;
+                //else{root = n->l_child;}
                 n->l_child->parent = n->parent;
                 n->l_child = nullptr;
             }
             else{
-                if(parent_child){*parent_child = n->r_child;}
+                *parent_child = n->r_child;
                 n->r_child->parent = n->parent;
                 n->r_child = nullptr;
             }
@@ -454,6 +457,7 @@ class Bst{
         // either case 1 or 2, hence delete node and update tree stats
         delete n;
         --size;
+        //if(size==0){root=nullptr;}
         recompute_height();
         return;
     }
@@ -514,15 +518,38 @@ class Bst{
         return os;
     }
     
-    std::string node_to_str(Node* n);
+  private:
 
+    /// @brief Returns the string representation of a node in the form "[key]:[value]"
+    /// 
+    /// @param n            pointer to the node to print
+    /// @param def          default string to use when input is nullptr
+    /// @param key_only     if True, the output string is only "[key]"
+    /// @return std::string "[key]:[value]" string representation of the node.
+    std::string node_to_str(Node* n, std::string def = "", bool key_only = false){
+        if(n==nullptr){return def;}
+
+        std::stringstream s;
+        s<<n->kv.first;
+        if(!key_only){
+            s<<":"<<n->kv.second;
+        }
+        return s.str();
+    }
+
+    /// @brief computes the maximum number of nodes at depth d
+    /// 
+    /// @param d    depth
+    /// @return int max number of nodes at depth d
     int max_rows(int d) const noexcept{
         int max_row{d>=0?1:0};
         for(int iii{0};iii<d;++iii){max_row*=2;}
         return max_row;
     }
 
-    std::string string_coords(const int& row,const int& depth,const int& min_size){
+
+    //TODO: do i need this?
+    std::string string_coords(int row,int depth,const int& min_size){
         
         // out of range
         if(depth>height || row>max_rows(depth)){
@@ -531,16 +558,38 @@ class Bst{
 
         Node* n{root};
         
-        // navigate tree to spot
-        while(n){
+        // navigate tree to (row,depth)
+        while(n!=nullptr && depth>0){
 
+            //TODO
+            n=nullptr;
         }
 
         return node_to_str(n);
 
     }
 
-    void pretty_print() const;
+  public:
+    void pretty_print(std::ostream os = std::cout) const{
+
+        //TODO: check tree height is not excessive (?)
+        
+        // single|no node case
+        if(height<1){
+            os<<node_to_str(root)<<std::endl;
+            return;
+        }
+
+        int n_rep_l{1};
+        int space_l{2-n_rep_l%2};
+
+        for(int depth{0}; depth<=height; ++depth){
+            for(int row{0}; row< (1<<depth); ++row){
+
+            }
+            os<<std::endl;
+        }
+    }
 
     //--------
     // Balance
@@ -551,8 +600,8 @@ class Bst{
     /// 
     /// @param kvs Sorted array of pointers to kvpairs
     /// @param out Empty bst to be orderly filled with kvpairs
-    /// @param s   first kvs element index
-    /// @param f   last kvs element index (length-1 at step 0)
+    /// @param s   index of the first kvs element to consider
+    /// @param f   index of the last kvs element to consider (length-1 at step 0)
     void balance_rec(kvpair**& kvs, Bst& out, int s, int f){
         
         // check that s<=f
@@ -579,7 +628,7 @@ class Bst{
     }
   
   public:
-    /// @brief Balances the tree
+    /// @brief Balances the tree.
     /// 
     void balance() {
 
