@@ -63,7 +63,9 @@ void test_interactive(){
     // Test start!
 
     std::cout<<"Welcome to the interactive demo!\n"
-               "It is suggested to run this demo on a large console for proper printing.\n"
+               "It is suggested to run this demo on a large console for proper printing.\n\n"
+               "DISCLAIMER: This is a VERY basic interactive prompt! There's no input sanitizing and attempts to break\n"
+               "it will easily succede. Use at your own risk!\n\n"
                "Please choose an initial bst size (suggested <8): "<<std::flush;
 
 
