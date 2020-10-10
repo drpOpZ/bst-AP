@@ -7,85 +7,6 @@
 
 typedef Bst<int,double> Testbst;
 
-void test_interactive_tour(){
-    Bst< int, double> bst;
-    std::cout<<"Hello Bst! s:"<<bst.get_size()<<" h:"<<bst.get_height()<<std::endl;
-
-
-    for(int iii{9}; (iii%13)!=0; iii = (iii+7)%13){
-        auto k = iii;
-        auto v = 2.7*iii;
-        std::cout<<"inserting "<<k<<" "<<v<<"..."<<std::flush;
-
-        //test move-insert
-        //auto out {bst.insert(std::make_pair(iii,2.7*iii))};
-        auto out {bst.emplace(iii,2.7*iii)};
-        
-
-        std::cout<< (out.second?"done! ":"failed! ")<<
-            (*out.first).first<<" "<<(*out.first).second<<
-            " s:"<<bst.get_size()<<
-            " h:"<<bst.get_height()<<std::endl;
-    }
-
-    //test copy insert and check repetition
-    auto cpkv{std::make_pair(77,7.77)};
-    cpkv.second+=0.01;
-    std::cout<<"copy insert success:"<<bst.insert(cpkv).second<<std::endl;
-    cpkv.second+=9.01;
-    std::cout<<"duplcate insert success:"<<bst.insert(cpkv).second<<std::endl;
-
-    std::cout<<"original\n"<<bst<<std::endl;
-
-    //test copy ctor
-    auto cpy{bst};
-    cpy = bst;
-    std::cout<<"copy\n"<<cpy<<std::endl;
-
-    for(auto& kv:cpy){
-        kv.second+=5;
-    }
-    std::cout<<"original\n"<<bst<<std::endl;
-    std::cout<<"copy\n"<<cpy<<std::endl;
-
-    //test mv ctor
-    auto mv{std::move(cpy)};
-    std::cout<<"moved copy\n"<<mv<<std::endl;
-    std::cout<<"copy\n"<<cpy<<std::endl;
-
-    //test find
-    int key;
-    std::cout<<"Chose key: ";
-    std::cin>>key;
-    auto f{mv.find(key)};
-    if(f!=mv.end()){
-        std::cout<<"Found V:"<<(*f).second<<", setting to 0"<<std::endl;
-        (*f).second=0;
-        std::cout<<"moved copy modified\n"<<mv<<std::endl;
-    }
-    else{
-        std::cout<<"Not found!"<<std::endl;
-    }
-
-    //test operator[]
-    double val;
-    std::cout<<"Chose key and new value";
-    std::cin>>key>>val;
-    bst[key]=val;
-    std::cout<<"original modified\n"<<bst<<std::endl;
-
-    //test erase
-    std::cout<<"Chose key to erase";
-    std::cin>>key;
-    bst.erase(key);
-    std::cout<<"original modified\n"<<bst<<std::endl;
-
-    //test balance
-    bst.balance();
-    std::cout<<"balanced\n"<<bst<<std::endl;
-}
-
-#define BEST_D_0 2e100
 
 int* get_random_arr(unsigned int size){
     int* a{new int[size]};
@@ -95,6 +16,108 @@ int* get_random_arr(unsigned int size){
     std::random_shuffle(a,&a[size]);
     return a;
 }
+
+void test_interactive(){
+
+    std::cout<<"Welcome to the interactive demo!\n"
+               "Please choose an initial bst size (suggested <8): "<<std::flush;
+    int usr_size;
+    std::cin>>usr_size;
+
+    auto keys{get_random_arr(usr_size)};
+
+    Testbst bst;
+    for(auto iii{0};iii<usr_size;++iii){
+        auto k{keys[iii]};
+        auto v{7.77*iii*k};
+        std::cout<<"inserting "<<k<<" "<<v<<"..."<<std::flush;
+        auto out{bst.emplace(k,v)};
+        
+        std::cout<< (out.second?"done! ":"failed! ")<<
+            (*out.first).first<<" "<<(*out.first).second<<
+            " s:"<<bst.get_size()<<
+            " h:"<<bst.get_height()<<std::endl;
+    }
+    delete[] keys;
+
+    std::cout<<"Here's your randomly generated bst:"<<std::endl;
+    bst.pretty_print();
+    std::cout<<"Output of \"operator<<\":\n"<<bst<<std::endl;
+
+    auto printmenu=[](){
+        std::cout<<"--Interactive Demo Commands--\n"
+            " p \t: "    "prints the tree\n"
+            " b \t: "    "balances the tree\n"
+            " f K\t: "   "finds node with key K:int and prints its value (if found)\n"
+            " e K V\t: " "edits/inserts (K:int,V:double) into the tree\n"
+            " x K\t: "   "erases node with key K:int\n"
+            " c \t: "    "clears the tree\n"
+            " h \t: "    "prints this command list\n"
+            " q \t: "    "exits the demo\n"
+            <<std::endl;
+    };
+    auto printprompt=[](){
+        std::cout<<"Command: "<<std::flush;
+    };
+
+    std::cout<<"Now, what do we do to it?"<<std::endl;
+    printmenu();
+    char cmd;
+    do{
+        printprompt();
+        std::cin>>cmd;
+
+        if(cmd=='p'){
+            bst.pretty_print();
+            std::cout<<bst<<std::endl;
+        }
+        else if(cmd=='b'){
+            bst.balance();
+            std::cout<<"Tree balanced!"<<std::endl;
+        }
+        else if(cmd=='f'){
+            int k;
+            std::cin>>k;
+            auto it{bst.find(k)};
+            if(it==bst.end()){
+                std::cout<<"Key \""<<k<<"\" not found!"<<std::endl;
+            }
+            else{
+                std::cout<<"Key found! "<<k<<":"<<(*it).second<<std::endl;
+            }
+        }
+        else if(cmd=='e'){
+            int k; double v;
+            std::cin>>k>>v;
+            bst[k]=v;
+            std::cout<<k<<":"<<v<<" set."<<std::endl;
+        }
+        else if(cmd=='x'){
+            int k;
+            std::cin>>k;
+            bst.erase(k);
+            std::cout<<"Erase attempted"<<std::endl;
+        }
+        else if(cmd=='c'){
+            bst.clear();
+            std::cout<<"Bst cleared!"<<std::endl;
+        }
+        else if(cmd=='q'){ /*pass*/ }
+        else {
+            if(cmd!='h'){
+                std::cout<<"That's not a command! Try one of these:\n";
+            }
+            printmenu();
+        }
+
+        std::cin.clear();
+        std::cin.ignore(0u - 1,'\n');
+
+    }while(cmd!='q');
+    std::cout<<"Thanks for running the demo :)\nBye bye!"<<std::endl;
+}
+
+#define BEST_D_0 2e100
 
 void test_performance(int trials, int baseN=1, int maxN=(1<<10)){
 
@@ -835,35 +858,9 @@ void test_performance(int trials, int baseN=1, int maxN=(1<<10)){
 
 int main(){
 
-    //test_interactive_tour();
-    //test_performance(5,1<<4,1<<15);
-
-    // int x;
-    // std::string y{"y"};
-    // std::cin>>x;
-    // if(x>5){
-    //     std::cin.clear();
-    //     std::cin.ignore(0u - 1,'\n');
-    //     std::cin>>y;
-    // }
-    // std::cout<<x<<" "<<y<<std::endl;
-
-    //Testbst bst;
-    //bst.emplace(1,5.7);
-    Testbst bst;
-    // int* a{get_random_arr(5)};
-    // for(int iii{0};iii<5;++iii){
-    //     bst.emplace(a[iii],(double)(a[iii]));
-    // }
-    // delete[] a;
-    for(int iii{0};iii<5;++iii){
-        bst.emplace(iii,(double)iii*iii*iii*iii);
-    }
-
-    bst.pretty_print(); std::cout<<bst<<std::endl;
-    bst.balance();
-    bst.pretty_print(); std::cout<<bst<<std::endl;
-
+    std::cout<<"\nNOTE:Exit the interactive demo to start performance test!\n"<<std::endl;
+    test_interactive();
+    test_performance(5,1<<4,1<<15);
 
     return 0;
 }

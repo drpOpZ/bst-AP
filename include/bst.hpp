@@ -587,8 +587,6 @@ class Bst{
 
   public:
     void pretty_print(std::ostream &os = std::cout, std::string empty="."){
-
-        //TODO: check tree height is not excessive (?)
         
         // single|no node case
         if(height<1){
@@ -666,7 +664,7 @@ class Bst{
     void balance() {
 
         // Exit if already balanced, ie if size<4 or height<=ceil(log_2(size))
-        if(size<4 || height<= std::ceil(std::log2(size))){return;}
+        if(size<2 || std::log2(size+1)==height+1){return;}
 
         // Copy ordered addressed of kv pairs in the tree
         kvpair** kvs{new kvpair*[size]};
