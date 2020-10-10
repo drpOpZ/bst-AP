@@ -17,7 +17,8 @@ int* get_random_arr(unsigned int size){
     std::random_shuffle(a,&a[size]);
     return a;
 }
-
+/// @brief Runs an interactive sandbox test that features a simple command prompt to play with the BST.
+/// 
 void test_interactive(){
 
     // Handy lambdas
@@ -146,7 +147,28 @@ void test_interactive(){
 
 #define BEST_D_0 2e100
 
-void test_performance(int trials, int baseN=1, int maxN=(1<<10)){
+/// @brief  Runs a series of repeated tests and prints the timing results on std::out.
+///         Each test is performed on three different BSTs:
+///         - 1->N      Obtained by inserting numbers from 1 to N sequentially (a huge right arm)
+///         - N->1      The opposite (A huge left arm)
+///         - random    Randomly inserts nodes with keys 1...N
+///         
+///         A fresh bst is created and populated at each trial to limit memory reusage.
+///
+///         The tests preformed are the following:
+///         1. Build            BST is filled with elements
+///         2. Copy             BST is deep-copied using copy-ctor
+///         3. Move             BST is move initialized
+///         4. Balance          BST is balanced
+///         5. Traversal        BST is traversed with iterator
+///         6. Arbitrary access BST nodes are accessed 1..N with operator[]
+///         7. Clear            BST is cleared
+///         8. Arbitrary erase  All nodes are removed in a random order (same for all trees at each routine)
+///
+/// @param trials   Number of trials that each test will be repeated to compute averge score.
+/// @param baseN    Starting size of the tested BSTs. Following routines duplicate it (e.g. 2->4->8...)
+/// @param maxN     Maximum size (<=) of the tested bst.
+void test_performance(int trials=5, int baseN=1<<4, int maxN=(1<<15)){
 
     auto start{std::chrono::steady_clock::now()},
          end{std::chrono::steady_clock::now()};

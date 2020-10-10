@@ -34,7 +34,7 @@ std::string& centered(std::string &s,std::size_t size,const char &fill_c=' '){
     return s;
 }
 
-/// @brief Binary search tree data structure
+/// @brief Binary search tree data structure.
 /// 
 /// This template class implements a Binary Search Tree
 /// for storing key-value pairs ordered accordingly to a given
@@ -51,7 +51,7 @@ class Bst{
 
   private:
 
-    /// @brief Tree nodes
+    /// @brief Tree nodes.
     /// 
     /// These make up the actual memory store of the bst.
     /// Node allocation is managed by the enclosing bst class, hence
@@ -63,26 +63,26 @@ class Bst{
         Node* l_child{nullptr};
         Node* r_child{nullptr};
 
-        /// @brief Construct a new Node object
+        /// @brief Construct a new Node object.
         /// 
         /// @param p_kv kvpair to copy into the node
         Node(const kvpair& p_kv): kv{p_kv}{};
 
-        /// @brief Construct a new Node object (steals)
+        /// @brief Construct a new Node object (steals).
         /// 
         /// @param p_kv kvpair to move into the node
         Node(kvpair&& p_kv): kv{std::move(p_kv)}{};
 
-        /// @brief Deep-copy ctor
+        /// @brief Deep-copy ctor.
         ///
         ///        Copies the input node and all of its children.
         /// @param node 
         Node(const Node& node);
 
-        /// @brief Recursively deletes all node's descents
+        /// @brief Recursively deletes all node's descents.
         void delete_subtree_rec();
 
-        /// @brief Destroy the Node object and its descents
+        /// @brief Destroy the Node object and its descents.
         ///        Calls delete_subtree_rec()
         ~Node(){delete_subtree_rec();}
 
@@ -143,12 +143,21 @@ class Bst{
       public:
         explicit _iterator(Node* n): current(n){};
 
-        // comparison op: compare current
-
+        /// @brief Equality check
+        /// 
+        /// @param rhs 
+        /// @return true    if both point at same node
+        /// @return false   ... otherwise
         bool operator==(const _iterator& rhs) const{return current == rhs.current;}
+
+        /// @brief Inequality check
+        /// 
+        /// @param rhs 
+        /// @return true    if they point to different nodes
+        /// @return false   ... otherwise
         bool operator!=(const _iterator& rhs) const{return !(current == rhs.current);}
 
-        /// @brief pre-increment
+        /// @brief pre-increment.
         /// 
         /// @return _iterator& The incremented _iterator obj
         _iterator& operator++(){
@@ -156,7 +165,7 @@ class Bst{
             return *this;
         }
         
-        /// @brief post-increment
+        /// @brief post-increment.
         ///
         /// @return _iterator Copy of the _iterator before increment 
         _iterator operator++(int){
@@ -165,7 +174,7 @@ class Bst{
             return cp;
         }
 
-        /// @brief de-refernce op. Gets reference to current->kv
+        /// @brief de-refernce op. Gets reference to current->kv.
         /// 
         /// @return KV& 
         KV& operator*() const{
@@ -181,7 +190,7 @@ class Bst{
     unsigned int size;
     int height;
 
-    /// @brief Recursive function to compute the height of a subtree given its root pointer
+    /// @brief Recursive function to compute the height of a subtree given its root pointer.
     /// 
     /// @param n    subtree root
     /// @return int height of the subtree rooted at n
@@ -217,7 +226,7 @@ class Bst{
         bst.height=-1;
     }
 
-    /// @brief Move assignment 
+    /// @brief Move assignment.
     /// 
     /// Steals root, leaving rhs in valid state.
     ///
@@ -225,7 +234,7 @@ class Bst{
     /// @return Bst& *this after steal
     Bst& operator=(Bst&& rhs);
 
-    /// @brief Deep-copy ctor
+    /// @brief Deep-copy ctor.
     /// 
     /// @param bst BST to copy
     Bst(const Bst& bst):
@@ -233,7 +242,7 @@ class Bst{
             size{bst.size},
             height{bst.height}{};
 
-    /// @brief Deep-copy assignment
+    /// @brief Deep-copy assignment.
     /// 
     /// @param rhs      BST to copy
     /// @return Bst&    *this after copy
@@ -245,14 +254,14 @@ class Bst{
     typedef _iterator<const kvpair> const_iterator;
 
   private:
-    /// @brief base iterator begin method
+    /// @brief base iterator begin method.
     /// 
     /// @tparam It - either iterator or const_iterator
     /// @return iterator to smallest (ie leftmost) element 
     template<class It>
     It _begin() const;
 
-    /// @brief base iterator end method
+    /// @brief base iterator end method.
     /// 
     /// @tparam It - either iterator or const_iterator
     /// @return It iterator to nullptr
@@ -307,7 +316,7 @@ class Bst{
 
   private:
 
-    /// @brief Base iterator find method
+    /// @brief Base iterator find method.
     /// 
     /// @tparam It      iterator or const_iterator
     /// @param key      Key to find
@@ -317,13 +326,13 @@ class Bst{
 
   public:
 
-    /// @brief returns an iterator to given key (or to end() if none was found)
+    /// @brief returns an iterator to given key (or to end() if none was found).
     /// 
     /// @param key        key to find
     /// @return iterator  iterator to value found (or end() if key is not present)
     inline iterator find(const K& key){ return _find<iterator>(key);}
     
-    /// @brief returns an iterator to given key (or to end() if none was found)
+    /// @brief returns an iterator to given key (or to end() if none was found).
     /// 
     /// @param key        key to find
     /// @return iterator  iterator to value found (or end() if key is not present)
@@ -347,7 +356,7 @@ class Bst{
 
   private:
     
-    /// @brief Helper method that performs node deletion recursively.
+    /// @brief Helper method that performs node deletion recursively;
     ///        BST structure is preserved.
     /// 
     /// @param n node to delete
@@ -359,7 +368,7 @@ class Bst{
     /// @param key Key of the element to remove
     void erase(const K& key);
 
-    /// @brief Clears the content of the tree
+    /// @brief Clears the content of the tree.
     /// 
     void clear();
 
@@ -367,18 +376,18 @@ class Bst{
     // Output
     //-------
 
-    /// @brief Getter for bst size
+    /// @brief Getter for bst size.
     /// 
     /// @return unsigned int bst's size
     unsigned int get_size() const noexcept{return size;}
 
-    /// @brief Getter for bst height
+    /// @brief Getter for bst height.
     /// 
     /// @return int tree's height
     int get_height() const noexcept{return height;}
     
     //TODO: const this?
-    /// @brief Sends string representation of bst to ostream
+    /// @brief Sends string representation of bst to ostream.
     /// 
     /// @param os               output stream
     /// @param bst              current object
@@ -395,13 +404,13 @@ class Bst{
   private:
 
 
-    /// @brief Returns a string representation of a kvpair
+    /// @brief Returns a string representation of a kvpair.
     /// 
     /// @param kv 
     /// @return std::string 
     std::string kv_to_str(kvpair &kv);
 
-    /// @brief Returns the string representation of a node in the form "[key]:[value]"
+    /// @brief Returns the string representation of a node in the form "[key]:[value]".
     /// 
     /// @param n            pointer to the node to print
     /// @param def          default string to use when input is nullptr
@@ -418,7 +427,7 @@ class Bst{
     void populate_nodes_at_depth(Node**& first,Node* n, const int& depth);
 
     /// @brief Allocates and returns an array cointaining pointers
-    ///        to the nodes at given depth
+    ///        to the nodes at given depth.
     /// @param depth    must be >=0. If > than *this.depth simply returns an array of nullptr
     /// @return Node**  Array of pointers to nodes at given depth in the bst (size 2^depth)
     Node** nodes_at_depth(int depth);
@@ -436,7 +445,7 @@ class Bst{
     //--------
   private:
 
-    /// @brief Builds a balanced bst by recursive insertion of the middle point
+    /// @brief Builds a balanced bst by recursive insertion of the middle point.
     /// 
     /// @param kvs Sorted array of pointers to kvpairs
     /// @param out Empty bst to be orderly filled with kvpairs
@@ -927,7 +936,7 @@ void Bst<K,V,cmp>::balance_rec(kvpair**& kvs, Bst& out, int s, int f){
 template< class K, class V, class cmp>
 void Bst<K,V,cmp>::balance() {
 
-    // Exit if already balanced, ie if size<4 or height<=ceil(log_2(size))
+    // Exit if too small or complete
     if(size<2 || std::log2(size+1)==height+1){return;}
 
     // Copy ordered addressed of kv pairs in the tree
