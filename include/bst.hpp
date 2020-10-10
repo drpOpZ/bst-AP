@@ -16,6 +16,13 @@ class Bst;
 template< class K, class V, class cmp>
 std::ostream& operator<<(std::ostream& , const Bst<K,V,cmp>&);
 
+/// @brief Recreates the string to be centered in a string of given size.
+///        Eventual excess space is put on the left.
+/// 
+/// @param s                I/O string
+/// @param size             size of the new string (if>= s.length() s remains unaltered);
+/// @param fill_c           (default:' ')Character used to fill in left and right spaces
+/// @return std::string&    Centered string.
 std::string& centered(std::string &s,std::size_t size,const char &fill_c=' '){
     if(size>s.length()){
         std::stringstream ss;
@@ -56,17 +63,27 @@ class Bst{
         Node* l_child{nullptr};
         Node* r_child{nullptr};
 
+        /// @brief Construct a new Node object
+        /// 
+        /// @param p_kv kvpair to copy into the node
         Node(const kvpair& p_kv): kv{p_kv}{};
+
+        /// @brief Construct a new Node object (steals)
+        /// 
+        /// @param p_kv kvpair to move into the node
         Node(kvpair&& p_kv): kv{std::move(p_kv)}{};
 
-        /// @brief Copy ctor
+        /// @brief Deep-copy ctor
+        ///
+        ///        Copies the input node and all of its children.
+        /// @param node 
         Node(const Node& node);
 
         /// @brief Recursively deletes all node's descents
         void delete_subtree_rec();
 
         /// @brief Destroy the Node object and its descents
-        /// 
+        ///        Calls delete_subtree_rec()
         ~Node(){delete_subtree_rec();}
 
     };
@@ -167,23 +184,12 @@ class Bst{
     /// @brief Recursive function to compute the height of a subtree given its root pointer
     /// 
     /// @param n    subtree root
-    /// @return int 
-    int compute_height_rec(Node* n) noexcept{
-        int hl{0},hr{0};
-        if(n->l_child){hl=1+compute_height_rec(n->l_child);}
-        if(n->r_child){hr=1+compute_height_rec(n->r_child);}
-        return hl>hr?hl:hr;
-    }
+    /// @return int height of the subtree rooted at n
+    int compute_height_rec(Node* n) noexcept;
 
     /// @brief Recomputes the height of the tree. To be used when removing nodes.
     /// 
-    void recompute_height() noexcept{
-        if(size==0){
-            height=-1;
-            return;
-        }
-        height=compute_height_rec(root);
-    }
+    void recompute_height() noexcept;
 
   public:
 
@@ -199,17 +205,17 @@ class Bst{
     /// Basically steals root, leaving moved bst in a valid state.
     /// @param bst bst to steal
     Bst(Bst&& bst):
-        root{bst.root},
-        size{bst.size},
-        height{bst.height}{
-            if(root){
-                if(root->l_child){root->l_child->parent = root;}
-                if(root->r_child){root->r_child->parent = root;}
-            }
-            bst.root=nullptr;
-            bst.size=0;
-            bst.height=-1;
+            root{bst.root},
+            size{bst.size},
+            height{bst.height}{
+        if(root){
+            if(root->l_child){root->l_child->parent = root;}
+            if(root->r_child){root->r_child->parent = root;}
         }
+        bst.root=nullptr;
+        bst.size=0;
+        bst.height=-1;
+    }
 
     /// @brief Move assignment 
     /// 
@@ -217,57 +223,21 @@ class Bst{
     ///
     /// @param rhs   bst to steal
     /// @return Bst& *this after steal
-    Bst& operator=(Bst&& rhs){
-
-        // Self equality check before doing anything
-        if(this != &rhs){
-
-            // clear the tree 
-            if(root){delete root;} //TODO: use clear()
-
-            // Copy root and stats
-            root = rhs.root;
-            size = rhs.size;
-            height = rhs.height;
-
-            // steal their children 
-            if(root){
-                if(root->l_child){root->l_child->parent = root;}
-                if(root->r_child){root->r_child->parent = root;}
-            }
-
-            // clean rhs
-            rhs.root=nullptr;
-            rhs.size=0;
-            rhs.height=-1;
-        }
-        return *this;
-    }
+    Bst& operator=(Bst&& rhs);
 
     /// @brief Deep-copy ctor
     /// 
     /// @param bst BST to copy
     Bst(const Bst& bst):
-        root{bst.root?new Node{*bst.root}:nullptr},
-        size{bst.size},
-        height{bst.height}{};
+            root{bst.root?new Node{*bst.root}:nullptr},
+            size{bst.size},
+            height{bst.height}{};
 
     /// @brief Deep-copy assignment
     /// 
     /// @param rhs      BST to copy
     /// @return Bst&    *this after copy
-    Bst& operator=(const Bst& rhs){
-        if(this != &rhs){
-            // clear  
-            if(root){delete root;} //TODO: use clear
-
-            // Perform the deep copy and also copy stats
-            root = rhs.root?new Node{*rhs.root}:nullptr;
-            size = rhs.size;
-            height = rhs.height;
-        }
-        return *this;
-    }
+    Bst& operator=(const Bst& rhs);
 
     // Iterator interface -----------------------------------------------------
 
@@ -280,15 +250,7 @@ class Bst{
     /// @tparam It - either iterator or const_iterator
     /// @return iterator to smallest (ie leftmost) element 
     template<class It>
-    It _begin() const{
-        Node* first{root};
-        if(first){
-            while(first->l_child){
-                first = first->l_child;
-            }
-        }
-        return It(first);
-    }
+    It _begin() const;
 
     /// @brief base iterator end method
     /// 
@@ -326,10 +288,7 @@ class Bst{
     /// 
     /// @param kv   key/value pair to copy
     /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
-    std::pair<iterator, bool> insert(const kvpair& kv){  
-        kvpair kvcopy{kv};
-        return insert(std::move(kv));
-    }
+    std::pair<iterator, bool> insert(const kvpair& kv);
 
     /// @brief Inserts a new node in the tree by creating it in place from given args.
     /// 
@@ -340,27 +299,22 @@ class Bst{
     /// @param vctorargs        values forwarded to V ctor (these are moved!)
     /// @return std::pair<iterator, bool> iterator to element at given key + if insertion was successful
     template< class... vctorargtypes >
-    std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs){
-        V value{vctorargs...};
-        kvpair kv{std::make_pair(key, std::move(value))};
-        return insert(std::move(kv));
-    }
+    std::pair<iterator, bool> emplace(const K& key, vctorargtypes&&... vctorargs);
 
     //------------
     // Node access
     //------------
 
   private:
+
+    /// @brief Base iterator find method
+    /// 
+    /// @tparam It      iterator or const_iterator
+    /// @param key      Key to find
+    /// @return It      Iterator to node "key" (or nullptr if not found)
     template<class It>
-    It _find(const K& key) const{
-        Node* target{root};
-        while(target){
-            bool gt{cmp()(target->kv.first,key)}, lt{cmp()(key,target->kv.first)};
-            if(gt==lt){ break;}
-            target = lt? target->l_child : target->r_child;
-        }
-        return It(target);
-    }
+    It _find(const K& key) const;
+
   public:
 
     /// @brief returns an iterator to given key (or to end() if none was found)
@@ -368,136 +322,46 @@ class Bst{
     /// @param key        key to find
     /// @return iterator  iterator to value found (or end() if key is not present)
     inline iterator find(const K& key){ return _find<iterator>(key);}
+    
+    /// @brief returns an iterator to given key (or to end() if none was found)
+    /// 
+    /// @param key        key to find
+    /// @return iterator  iterator to value found (or end() if key is not present)
     inline const_iterator find(const K& key) const{ return _find<const_iterator>(key);};
 
     /// @brief returns a r/w reference to value at given key (eventually initializing it).
     /// 
     /// @param key        key of the element to return
     /// @return V&        reference to the element at key (initializes it if not present already)
-    V& operator[](K&& key){
-        iterator it{find(std::move(key))};
-        if(it==end()){
-            it = insert(std::move(std::make_pair(key,V()))).first;
-        }
-        return (*it).second;
-    }
+    V& operator[](K&& key);
     
     /// @brief returns a r/w reference to value at given key (eventually initializing it).
     /// 
     /// @param key        key of the element to return
     /// @return V&        reference to the element at key (initializes it if not present already)
-    V& operator[](const K& key){
-        auto cp{key};
-        return (*this)[std::move(cp)];
-    }
+    V& operator[](const K& key);
+
+    //-------------
+    // Node removal
+    //-------------
 
   private:
     
-    /// @brief Helper method that performs node deletion recursively. BST structure is preserved.
+    /// @brief Helper method that performs node deletion recursively.
+    ///        BST structure is preserved.
     /// 
     /// @param n node to delete
-    void erase_node(Node* n){
-
-        // case 0: key not present. Skip
-        if(n==nullptr){
-            return;
-        }
-
-        Node** parent_child{&root};
-        if(n->parent){
-            parent_child= (n==n->parent->l_child)?
-                           &(n->parent->l_child) : 
-                           &(n->parent->r_child);
-        }
-
-        // case 1: no children
-        if(n->l_child==nullptr && n->r_child == nullptr){
-            
-            // just update parent
-            *parent_child = nullptr;
-        }
-        // case 2: both children -> recursion and break
-        else if(n->l_child!=nullptr && n->r_child!=nullptr){
-            Node* successor{select_next_node(n)};
-            
-            // substitute n->kv with successor's.
-            // UGLY BIT HERE!
-            
-            // get n links
-            Node *n_p{n->parent}, *n_l{n->l_child},*n_r{n->r_child};
-            
-            // rid of n (spare his children)
-            n->l_child = nullptr;
-            n->r_child = nullptr;
-            delete n;
-
-            // replace n and fix links in it...
-            n = new Node{successor->kv};
-            n->parent = n_p;
-            n->l_child = n_l;
-            n->r_child = n_r;
-            
-            // ... in parent ...
-            *parent_child=n;
-            
-            // ... and in children. Note that both are there beause we checked.
-            n_l->parent = n;
-            n_r->parent = n;
-
-            // recursively erase successor (which is a duplicate of n, except for family)
-            erase_node(successor);
-
-            return;
-        }
-        // case 3: one child -> link parent and child
-        else{
-            if(n->l_child){
-                *parent_child = n->l_child;
-                //else{root = n->l_child;}
-                n->l_child->parent = n->parent;
-                n->l_child = nullptr;
-            }
-            else{
-                *parent_child = n->r_child;
-                n->r_child->parent = n->parent;
-                n->r_child = nullptr;
-            }
-        }
-
-        // either case 1 or 2, hence delete node and update tree stats
-        delete n;
-        --size;
-        //if(size==0){root=nullptr;}
-        recompute_height();
-        return;
-    }
+    void erase_node(Node* n);
   public:
 
     /// @brief Remove the element at given key (if present) while preserving bst structure.
     /// 
     /// @param key Key of the element to remove
-    void erase(const K& key){
-
-        // find node corresponding to key
-        Node* n{root};
-        while(n){
-            bool gt{cmp()(n->kv.first,key)}, lt{cmp()(key,n->kv.first)};
-            if(gt==lt){ break;}
-            n = lt? n->l_child : n->r_child;
-        }
-        erase_node(n);
-    }
+    void erase(const K& key);
 
     /// @brief Clears the content of the tree
     /// 
-    void clear(){
-        if(root){
-            delete root;
-            root = nullptr;
-            size=0;
-            height=-1;
-        }
-    }
+    void clear();
 
     //-------
     // Output
@@ -530,11 +394,12 @@ class Bst{
     
   private:
 
-    std::string kv_to_str(kvpair &kv){
-        std::stringstream s;
-        s<<kv.first<<":"<<kv.second;
-        return s.str();   
-    }
+
+    /// @brief Returns a string representation of a kvpair
+    /// 
+    /// @param kv 
+    /// @return std::string 
+    std::string kv_to_str(kvpair &kv);
 
     /// @brief Returns the string representation of a node in the form "[key]:[value]"
     /// 
@@ -542,85 +407,29 @@ class Bst{
     /// @param def          default string to use when input is nullptr
     /// @param key_only     if True, the output string is only "[key]"
     /// @return std::string "[key]:[value]" string representation of the node.
-    std::string node_to_str(Node* n, std::string def = "X", bool key_only = false){
-        if(n==nullptr){return def;}
+    std::string node_to_str(Node* n, std::string def = ".", bool key_only = false);
 
-        std::stringstream ss;
-        if(key_only){
-            ss<<n->kv.first;
-        }
-        else{
-            ss<< kv_to_str(n->kv);
-        }
-        return ss.str();
-    }
+    /// @brief Recursively populates the Node** array given in input
+    ///        to hold pointers to the nodes at a given depth.
+    /// @param first Array to populate. it MUST HAVE BEEN ALLOCATED of size (at least) 2^depth.
+    /// @param n     Root of the subtree whose height is depth and whose 
+    ///              layer is (to be) referenced in first[0]...first[2^depth-1]
+    /// @param depth target depth (if out of range, just populates of nullptr)
+    void populate_nodes_at_depth(Node**& first,Node* n, const int& depth);
 
-    void populate_nodes_at_depth(Node**& first,Node* n, const int& depth){
-        
-        if(depth<0){return;}
-
-        if(depth==0){
-            *first = n;
-        }
-        else if(n){
-            Node** mid{&first[1<<(depth-1)]};
-            populate_nodes_at_depth(first,n->l_child,depth-1);
-            populate_nodes_at_depth(mid,n->r_child,depth-1);
-        }
-        else{
-            Node** last{&first[1<<depth]};
-            for(Node** ppp{first};ppp<last; ++ppp){
-                *ppp = nullptr;
-            }
-        }
-    }
-
-    Node** nodes_at_depth(int depth){
-        
-        if(depth<0){return nullptr;}
-
-        Node** out{new Node*[1<<depth]};
-        populate_nodes_at_depth(out,root,depth);
-
-        return out;
-    }
+    /// @brief Allocates and returns an array cointaining pointers
+    ///        to the nodes at given depth
+    /// @param depth    must be >=0. If > than *this.depth simply returns an array of nullptr
+    /// @return Node**  Array of pointers to nodes at given depth in the bst (size 2^depth)
+    Node** nodes_at_depth(int depth);
 
   public:
-    void pretty_print(std::ostream &os = std::cout, std::string empty="."){
-        
-        // single|no node case
-        if(height<1){
-            os<<node_to_str(root)<<std::endl;
-            return;
-        }
 
-        std::size_t nrep_size{0};
-        for(auto& kv: *this){
-            auto nl{kv_to_str(kv).length()};
-            if(nrep_size<nl){nrep_size=nl;}
-        }
-        nrep_size+=2;
-
-        //puff nrep_size to root level size
-        nrep_size= nrep_size<<height;
-        for(int depth{0}; depth<=height; ++depth){
-
-            auto n_d{nodes_at_depth(depth)};
-
-            for(int iii{0}; iii< (1<<depth); ++iii){
-                auto noderep{node_to_str(n_d[iii], empty)};
-                os<<centered(noderep,nrep_size);
-            }
-            os<<std::endl<<std::endl;
-
-            //halve nrep_size
-            nrep_size/=2;
-
-            delete[] n_d;
-        }
-
-        //
-    }
+    /// @brief Writes a graphical representation of the bst onto the given std::ostream.
+    /// 
+    /// @param os       Output stream (default: std::cout)
+    /// @param empty    Character to replace empty nodes (default: '.')
+    void pretty_print(std::ostream &os = std::cout, std::string empty=".");
 
     //--------
     // Balance
@@ -633,57 +442,14 @@ class Bst{
     /// @param out Empty bst to be orderly filled with kvpairs
     /// @param s   index of the first kvs element to consider
     /// @param f   index of the last kvs element to consider (length-1 at step 0)
-    void balance_rec(kvpair**& kvs, Bst& out, int s, int f){
-        
-        // check that s<=f
-        if(f<s){
-            return;
-        }
-
-        // case 1: only one element, insert it
-        if(s==f){
-            out.insert(std::move(std::make_pair( kvs[s]->first, kvs[s]->second)));
-        }
-        // case 2: two elements insert both (s then f)
-        else if(f-s==1){
-            out.insert(std::move(std::make_pair(kvs[s]->first,kvs[s]->second)));
-            out.insert(std::move(std::make_pair(kvs[f]->first,kvs[f]->second)));
-        }
-        //case 3: 3+ elements. Insert middlepoint and recursively call on l and right half (mid excluded)
-        else{
-            int mid{s + (f-s)/2};
-            out.insert(std::move(std::make_pair(kvs[mid]->first,kvs[mid]->second)));
-            balance_rec(kvs,out,s,mid-1);
-            balance_rec(kvs,out,mid+1,f);
-        }
-    }
+    void balance_rec(kvpair**& kvs, Bst& out, int s, int f);
   
   public:
-    /// @brief Balances the tree.
-    /// 
-    void balance() {
-
-        // Exit if already balanced, ie if size<4 or height<=ceil(log_2(size))
-        if(size<2 || std::log2(size+1)==height+1){return;}
-
-        // Copy ordered addressed of kv pairs in the tree
-        kvpair** kvs{new kvpair*[size]};
-        int iii{0};
-        for(auto& kv: *this){
-            kvs[iii]=&kv;
-            ++iii;
-        }
-
-        // build balanced copy recursively
-        Bst balanced;
-        balance_rec(kvs,balanced,0,size-1);
-
-        // free resources
-        delete[] kvs;
-
-        // substitutes *this with balanced tree
-        *this = std::move(balanced);
-    }
+    /// @brief Balances the tree by replacing it with one built
+    ///        by laying the original nodes in a cmp() ordered sequence
+    ///        and recursively inserting the median node, and that of the
+    ///        left and right residual sequences.
+    void balance();
 };
 
 
@@ -724,18 +490,91 @@ Bst<K,V,cmp>::Node::Node(const Node& node):
     }
 }
 
-
-//---------
-// iterator
-//---------
-
-
 //----
 // bst
 //----
 
+// height helpers
+
 template< class K, class V, class cmp>
-std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
+int Bst<K,V,cmp>::compute_height_rec(Bst::Node* n) noexcept{
+    int hl{0},hr{0};
+    if(n->l_child){hl=1+compute_height_rec(n->l_child);}
+    if(n->r_child){hr=1+compute_height_rec(n->r_child);}
+    return hl>hr?hl:hr;
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::recompute_height() noexcept{
+    if(size==0){
+        height=-1;
+        return;
+    }
+    height=compute_height_rec(root);
+}
+
+// operator=
+
+template< class K, class V, class cmp>
+Bst<K,V,cmp>& Bst<K,V,cmp>::operator=(Bst&& rhs){
+
+    // Self equality check before doing anything
+    if(this != &rhs){
+
+        // clear the tree 
+        if(root){delete root;} //TODO: use clear()
+
+        // Copy root and stats
+        root = rhs.root;
+        size = rhs.size;
+        height = rhs.height;
+
+        // steal their children 
+        if(root){
+            if(root->l_child){root->l_child->parent = root;}
+            if(root->r_child){root->r_child->parent = root;}
+        }
+
+        // clean rhs
+        rhs.root=nullptr;
+        rhs.size=0;
+        rhs.height=-1;
+    }
+    return *this;
+}
+
+template< class K, class V, class cmp>
+Bst<K,V,cmp>& Bst<K,V,cmp>::operator=(const Bst& rhs){
+    if(this != &rhs){
+        // clear  
+        if(root){delete root;} //TODO: use clear
+
+        // Perform the deep copy and also copy stats
+        root = rhs.root?new Node{*rhs.root}:nullptr;
+        size = rhs.size;
+        height = rhs.height;
+    }
+    return *this;
+}
+
+// iterators
+
+template< class K, class V, class cmp>
+template< class It>
+It Bst<K,V,cmp>::_begin() const{
+    Node* first{root};
+    if(first){
+        while(first->l_child){
+            first = first->l_child;
+        }
+    }
+    return It(first);
+}
+
+// insertion
+
+template< class K, class V, class cmp>
+std::pair<typename Bst< K, V, cmp>::iterator, bool > Bst<K,V,cmp>::insert(Bst::kvpair&& kv){
     Node* target_parent{root};
     
     // root
@@ -788,4 +627,324 @@ std::pair<typename Bst< K, V, cmp> ::iterator, bool > Bst<K,V,cmp>::insert(Bst::
     if(height<new_height){ height = new_height;}
 
     return std::make_pair(Bst::iterator{target},true);
+}
+
+template< class K, class V, class cmp>
+std::pair<typename Bst< K, V, cmp>::iterator, bool > Bst<K,V,cmp>::insert(const kvpair& kv){  
+    kvpair kvcopy{kv};
+    return insert(std::move(kv));
+}
+
+template< class K, class V, class cmp>
+template< class... vctorargtypes >
+std::pair<typename Bst< K, V, cmp>::iterator, bool > Bst<K,V,cmp>::emplace(const K& key, vctorargtypes&&... vctorargs){
+    V value{vctorargs...};
+    kvpair kv{std::make_pair(key, std::move(value))};
+    return insert(std::move(kv));
+}  
+
+
+// Node access
+
+template< class K, class V, class cmp>
+template< class It>
+It Bst<K,V,cmp>::_find(const K& key) const{
+    Node* target{root};
+    while(target){
+        bool gt{cmp()(target->kv.first,key)}, lt{cmp()(key,target->kv.first)};
+        if(gt==lt){ break;}
+        target = lt? target->l_child : target->r_child;
+    }
+    return It(target);
+}
+
+template< class K, class V, class cmp>
+V& Bst<K,V,cmp>::operator[](K&& key){
+    iterator it{find(std::move(key))};
+    if(it==end()){
+        it = insert(std::move(std::make_pair(key,V()))).first;
+    }
+    return (*it).second;
+}
+
+template< class K, class V, class cmp>
+V& Bst<K,V,cmp>::operator[](const K& key){
+    auto cp{key};
+    return (*this)[std::move(cp)];
+}
+
+
+// Node Removal
+
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::erase_node(Node* n){
+
+    // case 0: key not present. Skip
+    if(n==nullptr){
+        return;
+    }
+
+    Node** parent_child{&root};
+    if(n->parent){
+        parent_child= (n==n->parent->l_child)?
+                        &(n->parent->l_child) : 
+                        &(n->parent->r_child);
+    }
+
+    // case 1: no children
+    if(n->l_child==nullptr && n->r_child == nullptr){
+        
+        // just update parent
+        *parent_child = nullptr;
+    }
+    // case 2: both children -> recursion and break
+    else if(n->l_child!=nullptr && n->r_child!=nullptr){
+        Node* successor{select_next_node(n)};
+        
+        // substitute n->kv with successor's.
+        // UGLY BIT HERE!
+        
+        // get n links
+        Node *n_p{n->parent}, *n_l{n->l_child},*n_r{n->r_child};
+        
+        // rid of n (spare his children)
+        n->l_child = nullptr;
+        n->r_child = nullptr;
+        delete n;
+
+        // replace n and fix links in it...
+        n = new Node{successor->kv};
+        n->parent = n_p;
+        n->l_child = n_l;
+        n->r_child = n_r;
+        
+        // ... in parent ...
+        *parent_child=n;
+        
+        // ... and in children. Note that both are there beause we checked.
+        n_l->parent = n;
+        n_r->parent = n;
+
+        // recursively erase successor (which is a duplicate of n, except for family)
+        erase_node(successor);
+
+        return;
+    }
+    // case 3: one child -> link parent and child
+    else{
+        if(n->l_child){
+            *parent_child = n->l_child;
+            //else{root = n->l_child;}
+            n->l_child->parent = n->parent;
+            n->l_child = nullptr;
+        }
+        else{
+            *parent_child = n->r_child;
+            n->r_child->parent = n->parent;
+            n->r_child = nullptr;
+        }
+    }
+
+    // either case 1 or 2, hence delete node and update tree stats
+    delete n;
+    --size;
+    recompute_height();
+    return;
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::erase(const K& key){
+
+    // find node corresponding to key by traversal from root
+    Node* n{root};
+    while(n){
+
+        bool gt{cmp()(n->kv.first,key)},
+             lt{cmp()(key,n->kv.first)};
+
+        if(gt==lt){ break;}
+        
+        n = lt? n->l_child : n->r_child;
+    }
+
+    // go for the kill
+    erase_node(n);
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::clear(){
+    if(root){
+
+        // ~Node() takes care of nodes
+        delete root;
+
+        // tidy up
+        root = nullptr;
+        size=0;
+        height=-1;
+    }
+}
+
+
+// Output
+
+template< class K, class V, class cmp>
+std::string Bst<K,V,cmp>::kv_to_str(kvpair &kv){
+    std::stringstream s;
+    s<<kv.first<<":"<<kv.second;
+    return s.str();   
+}
+
+template< class K, class V, class cmp>
+std::string Bst<K,V,cmp>::node_to_str(Node* n, std::string def, bool key_only){
+    if(n==nullptr){return def;}
+
+    std::stringstream ss;
+    
+    if(key_only){ ss<<n->kv.first; }
+    else{ ss<< kv_to_str(n->kv); }
+
+    return ss.str();
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::populate_nodes_at_depth(Node**& first,Node* n, const int& depth){
+    
+    if(depth<0){return;}
+
+    if(depth==0){
+        *first = n;
+    }
+    else if(n){
+        Node** mid{&first[1<<(depth-1)]};
+        populate_nodes_at_depth(first,n->l_child,depth-1);
+        populate_nodes_at_depth(mid,n->r_child,depth-1);
+    }
+    else{
+        Node** last{&first[1<<depth]};
+        for(Node** ppp{first};ppp<last; ++ppp){
+            *ppp = nullptr;
+        }
+    }
+}
+
+template< class K, class V, class cmp>
+typename Bst<K,V,cmp>::Node** Bst<K,V,cmp>::nodes_at_depth(int depth){
+    
+    if(depth<0){return nullptr;}
+
+    Node** out{new Node*[1<<depth]};
+    populate_nodes_at_depth(out,root,depth);
+
+    return out;
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::pretty_print(std::ostream &os, std::string empty){
+    
+    // start with a newline
+    std::cout<<std::endl;
+
+    // single|no node case: just print root
+    if(height<1){
+        os<<node_to_str(root, empty)<<std::endl;
+        return;
+    }
+
+    // Compute the greatest representation size among tree nodes
+    std::size_t nrep_size{0};
+    for(auto& kv: *this){
+        auto nl{kv_to_str(kv).length()};
+        if(nrep_size<nl){nrep_size=nl;}
+    }
+    // ... and add 2 (to have at least one space separating nodes)
+    nrep_size+=2;
+
+    // Print nodes at each depth by centering them
+    // in subsequently halved spaces:
+    // 
+    // d=0  |....x....|
+    // d=1  |..x.|..x.|
+    // d=2  |.x|x|.x|x|
+    //          ....
+    
+    // initial space = bottom layer space.
+    // Initializing it as a power of two (using bitwise shift)
+    // ensures halving never needs rounding during the procedure
+    nrep_size= nrep_size<<height;
+    for(int depth{0}; depth<=height; ++depth){
+        
+        // get the nodes at current depth
+        auto n_d{nodes_at_depth(depth)};
+
+        // print em
+        for(int iii{0}; iii< (1<<depth); ++iii){
+            auto noderep{node_to_str(n_d[iii], empty)};
+            os<<centered(noderep,nrep_size);
+        }
+        os<<std::endl<<std::endl;
+
+        // halve nrep_size
+        nrep_size/=2;
+
+        // free resources!
+        delete[] n_d;
+    }
+
+}
+
+
+// Balance
+
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::balance_rec(kvpair**& kvs, Bst& out, int s, int f){
+    
+    // check that s<=f
+    if(f<s){
+        return;
+    }
+
+    // case 1: only one element, insert it
+    if(s==f){
+        out.insert(std::move(std::make_pair( kvs[s]->first, kvs[s]->second)));
+    }
+    // case 2: two elements insert both (s then f)
+    else if(f-s==1){
+        out.insert(std::move(std::make_pair(kvs[s]->first,kvs[s]->second)));
+        out.insert(std::move(std::make_pair(kvs[f]->first,kvs[f]->second)));
+    }
+    //case 3: 3+ elements. Insert middlepoint and recursively call on l and right half (mid excluded)
+    else{
+        int mid{s + (f-s)/2};
+        out.insert(std::move(std::make_pair(kvs[mid]->first,kvs[mid]->second)));
+        balance_rec(kvs,out,s,mid-1);
+        balance_rec(kvs,out,mid+1,f);
+    }
+}
+
+template< class K, class V, class cmp>
+void Bst<K,V,cmp>::balance() {
+
+    // Exit if already balanced, ie if size<4 or height<=ceil(log_2(size))
+    if(size<2 || std::log2(size+1)==height+1){return;}
+
+    // Copy ordered addressed of kv pairs in the tree
+    kvpair** kvs{new kvpair*[size]};
+    int iii{0};
+    for(auto& kv: *this){
+        kvs[iii]=&kv;
+        ++iii;
+    }
+
+    // build balanced copy recursively
+    Bst balanced;
+    balance_rec(kvs,balanced,0,size-1);
+
+    // free resources
+    delete[] kvs;
+
+    // substitutes *this with balanced tree
+    *this = std::move(balanced);
 }
