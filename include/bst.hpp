@@ -16,6 +16,16 @@ class Bst;
 template< class K, class V, class cmp>
 std::ostream& operator<<(std::ostream& , const Bst<K,V,cmp>&);
 
+std::string& centered(std::string &s,std::size_t size,const char &fill_c=' '){
+    if(size>s.length()){
+        std::stringstream ss;
+        std::string fill_l((size-s.length())/2 + (size-s.length())%2,fill_c);
+        std::string fill_r((size-s.length())/2,fill_c);
+        ss<<fill_l<<s<<fill_r;
+        s = ss.str();
+    }
+    return s;
+}
 
 /// @brief Binary search tree data structure
 /// 
@@ -520,57 +530,63 @@ class Bst{
     
   private:
 
+    std::string kv_to_str(kvpair &kv){
+        std::stringstream s;
+        s<<kv.first<<":"<<kv.second;
+        return s.str();   
+    }
+
     /// @brief Returns the string representation of a node in the form "[key]:[value]"
     /// 
     /// @param n            pointer to the node to print
     /// @param def          default string to use when input is nullptr
     /// @param key_only     if True, the output string is only "[key]"
     /// @return std::string "[key]:[value]" string representation of the node.
-    std::string node_to_str(Node* n, std::string def = "", bool key_only = false){
+    std::string node_to_str(Node* n, std::string def = "X", bool key_only = false){
         if(n==nullptr){return def;}
 
-        std::stringstream s;
-        s<<n->kv.first;
-        if(!key_only){
-            s<<":"<<n->kv.second;
+        std::stringstream ss;
+        if(key_only){
+            ss<<n->kv.first;
         }
-        return s.str();
+        else{
+            ss<< kv_to_str(n->kv);
+        }
+        return ss.str();
     }
 
-    /// @brief computes the maximum number of nodes at depth d
-    /// 
-    /// @param d    depth
-    /// @return int max number of nodes at depth d
-    int max_rows(int d) const noexcept{
-        int max_row{d>=0?1:0};
-        for(int iii{0};iii<d;++iii){max_row*=2;}
-        return max_row;
+    void populate_nodes_at_depth(Node**& first,Node* n, const int& depth){
+        
+        if(depth<0){return;}
+
+        if(depth==0){
+            *first = n;
+        }
+        else if(n){
+            Node** mid{&first[1<<(depth-1)]};
+            populate_nodes_at_depth(first,n->l_child,depth-1);
+            populate_nodes_at_depth(mid,n->r_child,depth-1);
+        }
+        else{
+            Node** last{&first[1<<depth]};
+            for(Node** ppp{first};ppp<last; ++ppp){
+                *ppp = nullptr;
+            }
+        }
     }
 
-
-    //TODO: do i need this?
-    std::string string_coords(int row,int depth,const int& min_size){
+    Node** nodes_at_depth(int depth){
         
-        // out of range
-        if(depth>height || row>max_rows(depth)){
-            return "";
-        }
+        if(depth<0){return nullptr;}
 
-        Node* n{root};
-        
-        // navigate tree to (row,depth)
-        while(n!=nullptr && depth>0){
+        Node** out{new Node*[1<<depth]};
+        populate_nodes_at_depth(out,root,depth);
 
-            //TODO
-            n=nullptr;
-        }
-
-        return node_to_str(n);
-
+        return out;
     }
 
   public:
-    void pretty_print(std::ostream os = std::cout) const{
+    void pretty_print(std::ostream &os = std::cout, std::string empty="."){
 
         //TODO: check tree height is not excessive (?)
         
@@ -580,15 +596,32 @@ class Bst{
             return;
         }
 
-        int n_rep_l{1};
-        int space_l{2-n_rep_l%2};
-
-        for(int depth{0}; depth<=height; ++depth){
-            for(int row{0}; row< (1<<depth); ++row){
-
-            }
-            os<<std::endl;
+        std::size_t nrep_size{0};
+        for(auto& kv: *this){
+            auto nl{kv_to_str(kv).length()};
+            if(nrep_size<nl){nrep_size=nl;}
         }
+        nrep_size+=2;
+
+        //puff nrep_size to root level size
+        nrep_size= nrep_size<<height;
+        for(int depth{0}; depth<=height; ++depth){
+
+            auto n_d{nodes_at_depth(depth)};
+
+            for(int iii{0}; iii< (1<<depth); ++iii){
+                auto noderep{node_to_str(n_d[iii], empty)};
+                os<<centered(noderep,nrep_size);
+            }
+            os<<std::endl<<std::endl;
+
+            //halve nrep_size
+            nrep_size/=2;
+
+            delete[] n_d;
+        }
+
+        //
     }
 
     //--------

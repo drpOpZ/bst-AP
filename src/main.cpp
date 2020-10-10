@@ -838,15 +838,32 @@ int main(){
     //test_interactive_tour();
     //test_performance(5,1<<4,1<<15);
 
-    int x;
-    std::string y{"y"};
-    std::cin>>x;
-    if(x>5){
-        std::cin.clear();
-        std::cin.ignore(0u - 1,'\n');
-        std::cin>>y;
+    // int x;
+    // std::string y{"y"};
+    // std::cin>>x;
+    // if(x>5){
+    //     std::cin.clear();
+    //     std::cin.ignore(0u - 1,'\n');
+    //     std::cin>>y;
+    // }
+    // std::cout<<x<<" "<<y<<std::endl;
+
+    //Testbst bst;
+    //bst.emplace(1,5.7);
+    Testbst bst;
+    // int* a{get_random_arr(5)};
+    // for(int iii{0};iii<5;++iii){
+    //     bst.emplace(a[iii],(double)(a[iii]));
+    // }
+    // delete[] a;
+    for(int iii{0};iii<5;++iii){
+        bst.emplace(iii,(double)iii*iii*iii*iii);
     }
-    std::cout<<x<<" "<<y<<std::endl;
+
+    bst.pretty_print(); std::cout<<bst<<std::endl;
+    bst.balance();
+    bst.pretty_print(); std::cout<<bst<<std::endl;
+
 
     return 0;
 }
